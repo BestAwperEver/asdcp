@@ -16,10 +16,7 @@ public class PdfParser implements FileParser {
 
 			readWords(doc);
 
-        } catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+        }
 	}
 	
 	public void readWords(PDDocument doc) throws IOException {
