@@ -8,7 +8,7 @@ import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.extractor.WordExtractor;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 
-public class DocParser implements FileParser {
+public class DocParser extends FileParser<HWPFDocument> {
 	
     public void readDocument (String fileName) throws IOException {
         POIFSFileSystem fs = null;
@@ -27,11 +27,7 @@ public class DocParser implements FileParser {
 
             for (int i = 0; i < paragraphs.length; ++i) {
             	words.addAll(Arrays.asList(paragraphs[i].split("\\s+")));
-            }
-            
-            for (String word : words) {
-            	System.out.println(word);
-            }    		
+            } 		
             
     	}
     }

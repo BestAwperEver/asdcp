@@ -6,15 +6,6 @@ import java.io.IOException;
 public final class EntryPoint {
 
 	public static void main(String[] args) {
-
-		HTMLParser htmlParser = new HTMLParser();
-		try {
-			htmlParser.readDocument("spbu.html");
-			System.out.println("File readed");
-		} catch (IOException e) {
-			System.out.println("Error happen during reading process");
-			e.printStackTrace();
-		}
 		
 		String fileName;
 		
@@ -37,6 +28,7 @@ public final class EntryPoint {
 			
 			String Type = splitted[splitted.length-1].toLowerCase();
 			
+			@SuppressWarnings("rawtypes")
 			FileParser xp = null;
 			
 			switch (Type) {
@@ -56,6 +48,9 @@ public final class EntryPoint {
 				System.out.println("Unsupported file format.");
 				System.exit(1);
 			}
+			
+			System.out.print(xp.getWords());
+			
 		} else {
 			System.out.println("Cannot open " + fileName + ". Is it valid file path?");
 			System.exit(2);

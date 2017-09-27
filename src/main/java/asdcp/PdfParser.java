@@ -8,7 +8,7 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.pdfbox.text.PDFTextStripperByArea;
 
-public class PdfParser implements FileParser {
+public class PdfParser extends FileParser<PDDocument> {
 
 	public void readDocument(String fileName) throws IOException {
 		
@@ -32,10 +32,6 @@ public class PdfParser implements FileParser {
             String pdfFileInText = tStripper.getText(doc);
             
             words.addAll(Arrays.asList(pdfFileInText.split("\\s+")));
-            
-            for (String word : words) {
-                System.out.println(word);
-            }
 
         } else {
         	System.out.println("The file is encrypted and can't be parsed.");

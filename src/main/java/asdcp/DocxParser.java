@@ -9,7 +9,7 @@ import java.util.List;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 
-public class DocxParser implements FileParser {
+public class DocxParser extends FileParser<XWPFDocument> {
 	
     public void readDocument(String fileName) throws IOException {
     	
@@ -29,10 +29,6 @@ public class DocxParser implements FileParser {
 
         for (XWPFParagraph para : paragraphs) {
         	words.addAll(Arrays.asList(para.getText().split("\\s+")));
-        }        
-        
-        for (String word : words) {
-        	System.out.println(word);
         }
         
     }
