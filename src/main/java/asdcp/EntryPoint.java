@@ -16,11 +16,11 @@ public final class EntryPoint {
 		}
 		
 		File f = new File(fileName);
-		if(f.exists() && !f.isDirectory()) { 
-			
+		if(f.exists() && !f.isDirectory()) {
+
 			String[] splitted = fileName.split("\\\\");
 			splitted = splitted[splitted.length-1].split("\\.");
-			
+
 			if (splitted.length < 2) {
 				System.out.println("Unsupported file format.");
 				System.exit(1);
@@ -35,6 +35,7 @@ public final class EntryPoint {
 				case "doc": xp = new DocParser(); break;
 				case "docx": xp = new DocxParser(); break;
 				case "pdf": xp = new PdfParser(); break;
+				case "html": xp = new HTMLParser(); break;
 			}
 			
 			if (xp != null) {

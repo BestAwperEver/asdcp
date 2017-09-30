@@ -4,17 +4,13 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.*;
 import org.jsoup.select.Elements;
 
 public class HTMLParser extends FileParser<Document> {
-    private List<String> divsText = new ArrayList<>();
     private String title;
     private List<String> links = new ArrayList<>();
     private List<String> linksText = new ArrayList<>();
@@ -46,7 +42,8 @@ public class HTMLParser extends FileParser<Document> {
 	        for (int i = 0; i < divElements.size(); i++) {
 	            Element divElement = divElements.get(i);
 	            String divText = divElement.text();
-	            divsText.add(divText);
+	            String[] splittedText = divText.split("[\\s]+");
+                Collections.addAll(words, splittedText);
 	            System.out.println("DivText: " + divText);
 	            outputStreamWriter.write("DivText: " + divText + lineSeparator);
 	        }
