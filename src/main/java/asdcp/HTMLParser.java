@@ -9,18 +9,49 @@ import java.util.*;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.*;
 import org.jsoup.select.Elements;
+import org.htmlcleaner.*;
 
 public class HTMLParser extends FileParser<Document> {
     private String title;
     private List<String> links = new ArrayList<>();
     private List<String> linksText = new ArrayList<>();
+    private boolean isCleaner = false;
+    private boolean isJsoup = false;
 
-    @Override
+	public List<String> getLinks() {
+		return links;
+	}
+
+	public boolean getIsCleaner() {
+		return isCleaner;
+	}
+
+	public void setCleaner(boolean cleaner) {
+		isCleaner = cleaner;
+		if(isCleaner) isJsoup = false;
+	}
+
+	public boolean isJsoup() {
+		return isJsoup;
+	}
+
+	public void setJsoup(boolean jsoup) {
+		isJsoup = jsoup;
+		if(isJsoup) isCleaner = false;
+	}
+
+	@Override
     public void readDocument(String fileName) throws IOException {
 
-        Document htmlFile = Jsoup.parse(new File(fileName), "UTF-8");
+		File readedFile = new File(fileName);
 
-        readWords(htmlFile);
+		if(isJsoup){
+			Document htmlFile = Jsoup.parse(readedFile, "UTF-8");
+			readWords(htmlFile);
+		}
+		if (isCleaner){
+			readFileUsingHtmlCleaner(readedFile);
+		}
 
     }
     
@@ -41,7 +72,7 @@ public class HTMLParser extends FileParser<Document> {
 	
 	        for (int i = 0; i < divElements.size(); i++) {
 	            Element divElement = divElements.get(i);
-	            String divText = divElement.text();
+	            String divText = divElement.text().trim();
 	            String[] splittedText = divText.split("[\\s]+");
                 Collections.addAll(words, splittedText);
 	            System.out.println("DivText: " + divText);
@@ -78,4 +109,35 @@ public class HTMLParser extends FileParser<Document> {
 	        outputStreamWriter.flush();
         }
     }
+
+    private void readFileUsingHtmlCleaner(File file){
+
+		HtmlCleaner cleaner = new HtmlCleaner();
+		TagNode rootNode = null;
+
+		try {
+			rootNode = cleaner.clean(file, "UTF-8");
+			TagNode[] divNodes = rootNode.getElementsByName("div", true); // to find inner elements
+			TagNode[] aNodes = rootNode.getElementsByName("a", true);
+
+			// Get text
+			for (int i = 0; i < divNodes.length; i++) {
+				String divText = divNodes[i].getText().toString().trim();
+				String[] splittedText = divText.split("[\\s]+");
+				Collections.addAll(words, splittedText);
+			}
+
+			// Get links
+			for (int i = 0; i < aNodes.length; i++) {
+				String link = aNodes[i].getAttributeByName("href");
+				links.add(link);
+				String linkText = aNodes[i].getText().toString();
+				linksText.add(linkText);
+
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 }

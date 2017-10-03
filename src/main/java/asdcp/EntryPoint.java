@@ -2,6 +2,7 @@ package asdcp;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 public final class EntryPoint {
 
@@ -42,12 +43,18 @@ public final class EntryPoint {
 					((PdfParser)xp).setUseJPod(false);
 					((PdfParser)xp).setUseIText(false);
 				} break;
-				case "html": xp = new HTMLParser(); break;
+				case "html":{
+					xp = new HTMLParser();
+					((HTMLParser)xp).setCleaner(true);
+					break;
+				}
+
 			}
 			
 			if (xp != null) {
 				try {
 					xp.readDocument(fileName);
+
 				} catch (IOException e) {
 					e.printStackTrace();
 					System.exit(3);
