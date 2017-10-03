@@ -33,8 +33,15 @@ public final class EntryPoint {
 			
 			switch (Type) {
 				case "doc": xp = new DocParser(); break;
-				case "docx": xp = new DocxParser(); break;
-				case "pdf": xp = new PdfParser(); break;
+				case "docx": {
+					xp = new DocxParser();
+					((DocxParser)xp).setUseDocx4j(false);
+				} break;
+				case "pdf": {
+					xp = new PdfParser();
+					((PdfParser)xp).setUseJPod(false);
+					((PdfParser)xp).setUseIText(false);
+				} break;
 				case "html": xp = new HTMLParser(); break;
 			}
 			
