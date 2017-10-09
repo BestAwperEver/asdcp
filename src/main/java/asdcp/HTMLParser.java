@@ -74,18 +74,11 @@ public class HTMLParser extends FileParser<Document> {
 	
 	        for (int i = 0; i < divElements.size(); i++) {
 	            Element divElement = divElements.get(i);
-<<<<<<< HEAD
-	            String divText = divElement.text();
+	            String divText = divElement.text().trim();
 	            
 	            sb.append(divText);
 	            
 	            //System.out.println("DivText: " + divText);
-=======
-	            String divText = divElement.text().trim();
-	            String[] splittedText = divText.split("[\\s]+");
-                Collections.addAll(words, splittedText);
-	            System.out.println("DivText: " + divText);
->>>>>>> 3ea2133c6495871bde923c142da48bafa5d8e43b
 	            outputStreamWriter.write("DivText: " + divText + lineSeparator);
 	        }
 	        
@@ -132,13 +125,15 @@ public class HTMLParser extends FileParser<Document> {
 			TagNode[] divNodes = rootNode.getElementsByName("div", true); // to find inner elements
 			TagNode[] aNodes = rootNode.getElementsByName("a", true);
 
+			StringBuilder sb = new StringBuilder();
+			
 			// Get text
 			for (int i = 0; i < divNodes.length; i++) {
-				String divText = divNodes[i].getText().toString().trim();
-				String[] splittedText = divText.split("[\\s]+");
-				Collections.addAll(words, splittedText);
+				sb.append(divNodes[i].getText().toString().trim());
 			}
 
+			text = sb.toString();
+			
 			// Get links
 			for (int i = 0; i < aNodes.length; i++) {
 				String link = aNodes[i].getAttributeByName("href");
