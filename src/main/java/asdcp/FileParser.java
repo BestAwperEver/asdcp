@@ -19,7 +19,7 @@ public abstract class FileParser<T> {
 	}
 	
 	public List<String> getWords() {
-		return Arrays.asList(text.split("\\s+"));
+		return Arrays.asList(text.trim().split("\\s+"));
 	}
 	
 }

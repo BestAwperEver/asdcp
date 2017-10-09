@@ -44,7 +44,7 @@ public final class EntryPoint {
 				} break;
 				case "html":{
 					xp = new HTMLParser();
-					((HTMLParser)xp).setCleaner(true);
+					((HTMLParser)xp).setUseCleaner(false);
 					break;
 				}
 

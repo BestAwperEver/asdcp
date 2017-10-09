@@ -15,29 +15,29 @@ public class HTMLParser extends FileParser<Document> {
     private String title;
     private List<String> links = new ArrayList<>();
     private List<String> linksText = new ArrayList<>();
-    private boolean isCleaner = false;
-    private boolean isJsoup = false;
+    private boolean useJsoup = true;
+    private boolean useCleaner = false;
 
 	public List<String> getLinks() {
 		return links;
 	}
 
-	public boolean getIsCleaner() {
-		return isCleaner;
+	public boolean getUseCleaner() {
+		return useCleaner;
 	}
 
-	public void setCleaner(boolean cleaner) {
-		isCleaner = cleaner;
-		if(isCleaner) isJsoup = false;
+	public void setUseCleaner(boolean cleaner) {
+		useCleaner = cleaner;
+		if (useCleaner) useJsoup = false;
 	}
 
-	public boolean isJsoup() {
-		return isJsoup;
+	public boolean getUseJsoup() {
+		return useJsoup;
 	}
 
 	public void setJsoup(boolean jsoup) {
-		isJsoup = jsoup;
-		if(isJsoup) isCleaner = false;
+		useJsoup = jsoup;
+		if (useJsoup) useCleaner = false;
 	}
 
 	@Override
@@ -45,11 +45,11 @@ public class HTMLParser extends FileParser<Document> {
 
 		File readedFile = new File(fileName);
 
-		if(isJsoup){
+		if (useJsoup){
 			Document htmlFile = Jsoup.parse(readedFile, "UTF-8");
 			readWords(htmlFile);
 		}
-		if (isCleaner){
+		if (useCleaner){
 			readFileUsingHtmlCleaner(readedFile);
 		}
 
@@ -74,7 +74,7 @@ public class HTMLParser extends FileParser<Document> {
 	
 	        for (int i = 0; i < divElements.size(); i++) {
 	            Element divElement = divElements.get(i);
-	            String divText = divElement.text().trim();
+	            String divText = divElement.text();
 	            
 	            sb.append(divText);
 	            
@@ -129,7 +129,7 @@ public class HTMLParser extends FileParser<Document> {
 			
 			// Get text
 			for (int i = 0; i < divNodes.length; i++) {
-				sb.append(divNodes[i].getText().toString().trim());
+				sb.append(divNodes[i].getText().toString());
 			}
 
 			text = sb.toString();
