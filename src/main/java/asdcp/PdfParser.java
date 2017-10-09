@@ -2,8 +2,6 @@ package asdcp;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
-
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.pdfbox.text.PDFTextStripperByArea;
@@ -38,8 +36,7 @@ public class PdfParser extends FileParser<PDDocument> {
 
 		if (m_bUseJPod) {
 			JpodPdfParser client = new JpodPdfParser();
-			String text = client.run(fileName);
-			words.addAll(Arrays.asList(text.split("\\s+")));
+			text = client.run(fileName);
 			return;
 		}
 
@@ -69,10 +66,14 @@ public class PdfParser extends FileParser<PDDocument> {
 	public void readWords(PdfReader doc) throws IOException {
 		int N = doc.getNumberOfPages();
 		
+		StringBuilder sb = new StringBuilder();
+		
 		for (int i = 1; i <= N; ++i) {
 			String textFromPage = PdfTextExtractor.getTextFromPage(doc, i);
-			words.addAll(Arrays.asList(textFromPage.split("\\s+")));
-		} 
+			sb.append(textFromPage);
+		}
+		
+		text = sb.toString();
 	}
 	
 	public void readWords(PDDocument doc) throws IOException {
@@ -85,9 +86,7 @@ public class PdfParser extends FileParser<PDDocument> {
 
             PDFTextStripper tStripper = new PDFTextStripper();
 
-            String pdfFileInText = tStripper.getText(doc);
-            
-            words.addAll(Arrays.asList(pdfFileInText.split("\\s+")));
+            text = tStripper.getText(doc);
 
         } else {
         	System.out.println("The file is encrypted and can't be parsed.");

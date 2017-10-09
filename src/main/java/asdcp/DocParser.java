@@ -2,8 +2,6 @@ package asdcp;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Arrays;
-
 import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.extractor.WordExtractor;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
@@ -25,9 +23,13 @@ public class DocParser extends FileParser<HWPFDocument> {
     		
             String[] paragraphs = we.getParagraphText();
 
+            StringBuilder sb = new StringBuilder();
+            
             for (int i = 0; i < paragraphs.length; ++i) {
-            	words.addAll(Arrays.asList(paragraphs[i].split("\\s+")));
-            } 		
+            	sb.append(paragraphs[i]);
+            }
+            
+            text = sb.toString();
             
     	}
     }

@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import javax.xml.bind.JAXBElement;
@@ -75,19 +74,28 @@ public class DocxParser extends FileParser<XWPFDocument> {
         
         List<XWPFParagraph> paragraphs = doc.getParagraphs();
 
+        StringBuilder sb = new StringBuilder();
+        
         for (XWPFParagraph para : paragraphs) {
-        	words.addAll(Arrays.asList(para.getText().split("\\s+")));
+        	sb.append(para.getText());
         }
+        
+        text = sb.toString();
         
     }
     
     public void readWords(WordprocessingMLPackage wordMLPackage) throws IOException {
      
     	List<Object> texts = getAllElementFromObject(wordMLPackage.getMainDocumentPart(), org.docx4j.wml.Text.class);
-		for (Object t : texts) {
+		
+    	StringBuilder sb = new StringBuilder();
+    	
+    	for (Object t : texts) {
 			org.docx4j.wml.Text content = (org.docx4j.wml.Text) t;
-			words.addAll(Arrays.asList(content.getValue().split("\\s+")));
+			sb.append(content.getValue());
 		}
+    	
+    	text = sb.toString();
         
     }
 
