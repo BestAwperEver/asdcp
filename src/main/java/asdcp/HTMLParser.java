@@ -118,8 +118,10 @@ public class HTMLParser extends FileParser<Document> {
     private void readFileUsingHtmlCleaner(File file){
 
 		HtmlCleaner cleaner = new HtmlCleaner();
+		CleanerProperties cleanerProperties = cleaner.getProperties();
+		cleanerProperties.setPruneTags("script");
 		TagNode rootNode = null;
-
+		
 		try {
 			rootNode = cleaner.clean(file, "UTF-8");
 			TagNode[] divNodes = rootNode.getElementsByName("div", true); // to find inner elements
