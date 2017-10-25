@@ -121,7 +121,7 @@ public class HTMLParser extends FileParser<Document> {
 		CleanerProperties cleanerProperties = cleaner.getProperties();
 		cleanerProperties.setPruneTags("script");
 		TagNode rootNode = null;
-		
+
 		try {
 			rootNode = cleaner.clean(file, "UTF-8");
 			TagNode[] divNodes = rootNode.getElementsByName("div", true); // to find inner elements
@@ -148,5 +148,16 @@ public class HTMLParser extends FileParser<Document> {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+	public static String readFromHTML(String html, String url){
+		Document htmlDoc = Jsoup.parse(html);
+		// get text from body
+		Element body = htmlDoc.body();
+		Elements divElements = body.getElementsByTag("div");
+
+		StringBuilder sb = new StringBuilder();
+		Element divElement = divElements.get(0);
+		String divText = divElement.text();
+		return divText;
 	}
 }
