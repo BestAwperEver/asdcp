@@ -1,22 +1,10 @@
 package asdcp;
 
-import java.io.File;
-import java.io.IOException;
-import edu.uci.ics.crawler4j.crawler.CrawlConfig;
-import edu.uci.ics.crawler4j.crawler.CrawlController;
-import edu.uci.ics.crawler4j.fetcher.PageFetcher;
-import edu.uci.ics.crawler4j.robotstxt.RobotstxtConfig;
-import edu.uci.ics.crawler4j.robotstxt.RobotstxtServer;
 import asdcp.crawler.*;
-import java.io.FileOutputStream;
-import java.io.OutputStreamWriter;
+
+import java.util.List;
 
 public final class EntryPoint {
-
-	private static final int MAX_DEPTH_OF_CRAWLING = 1;
-	private static final int MAX_PAGES_TO_FETCH = 10;
-	// concurent threads for crawling
-	private static final int NUMBER_OF_CRAWLERS = 4;
 
 	public static void main(String[] args) {
 		
@@ -83,30 +71,12 @@ public final class EntryPoint {
 //			System.exit(2);
 //		}
 
-		String crawlStorageFolder = "E:\\testCrawlerData";
 		String domen = "http://spbu.ru/";
-		CrawlConfig config = new CrawlConfig();
 
-		config.setCrawlStorageFolder(crawlStorageFolder);
-		config.setMaxDepthOfCrawling(MAX_DEPTH_OF_CRAWLING);
-		config.setMaxPagesToFetch(MAX_PAGES_TO_FETCH);
-		config.setIncludeBinaryContentInCrawling(false);
-		PageFetcher pageFetcher = new PageFetcher(config);
-		RobotstxtConfig robotstxtConfig = new RobotstxtConfig();
-		RobotstxtServer robotstxtServer = new RobotstxtServer(robotstxtConfig, pageFetcher);
-		BasicCrawler.setDomen(domen);
-
-		try {
-			IOUtils.createResources();
-			CrawlController controller = new CrawlController(config, pageFetcher, robotstxtServer);
-			controller.addSeed(domen);
-			controller.start(BasicCrawler.class, NUMBER_OF_CRAWLERS);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		finally {
-			IOUtils.closeResources();
-		}
+		Crawler crawler = new Crawler(domen);
+		crawler.start();
+		List<String> text = crawler.getText();
+		List<String> links = crawler.getLinks();
 
 	}
 }
