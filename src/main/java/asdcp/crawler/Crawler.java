@@ -21,8 +21,8 @@ public class Crawler extends WebCrawler {
     private final static Pattern FILTERS = Pattern.compile(".*(\\.(css|js|gif|jpg"
             + "|png|mp3|mp4|zip|gz))$");
 
-    private static final int MAX_DEPTH_OF_CRAWLING = 1;
-    private static final int MAX_PAGES_TO_FETCH = 10;
+    private static final int MAX_DEPTH_OF_CRAWLING = 2;
+    //private static final int MAX_PAGES_TO_FETCH = 10;
     // concurent threads for crawling
     private static final int NUMBER_OF_CRAWLERS = 4;
 
@@ -57,7 +57,7 @@ public class Crawler extends WebCrawler {
         Crawler.config = new CrawlConfig();
         Crawler.config.setCrawlStorageFolder(crawlStorageFolder);
         Crawler.config.setMaxDepthOfCrawling(MAX_DEPTH_OF_CRAWLING);
-        Crawler.config.setMaxPagesToFetch(MAX_PAGES_TO_FETCH);
+        //Crawler.config.setMaxPagesToFetch(MAX_PAGES_TO_FETCH);
         Crawler.config.setIncludeBinaryContentInCrawling(false);
         Crawler.pageFetcher = new PageFetcher(config);
         Crawler.robotstxtConfig = new RobotstxtConfig();
@@ -90,7 +90,7 @@ public class Crawler extends WebCrawler {
     public boolean shouldVisit(Page referringPage, WebURL url) {
         String href = url.getURL().toLowerCase();
         return !FILTERS.matcher(href).matches()
-                && href.startsWith(domen);
+                && href.contains("spbu.ru");
     }
 
     /**
