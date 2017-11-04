@@ -10,33 +10,28 @@ import edu.uci.ics.crawler4j.robotstxt.RobotstxtConfig;
 import edu.uci.ics.crawler4j.robotstxt.RobotstxtServer;
 import edu.uci.ics.crawler4j.url.WebURL;
 
-import java.io.OutputStreamWriter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 import asdcp.HTMLParser;
 
 public class Crawler extends WebCrawler {
     private final static Pattern FILTERS = Pattern.compile(".*(\\.(css|js|gif|jpg"
-            + "|png|mp3|mp4|zip|gz))$");
+            + "|png|mp3|mp4|zip|gz|pdf|txt|doc|docx))$");
 
-    private static final int MAX_DEPTH_OF_CRAWLING = 2;
-    //private static final int MAX_PAGES_TO_FETCH = 10;
+    private static final int MAX_DEPTH_OF_CRAWLING = 1;
     // concurent threads for crawling
     private static final int NUMBER_OF_CRAWLERS = 4;
 
     private static String domen;
-    private static OutputStreamWriter textOutputStreamWriter;
     private static CrawlController controller;
-    // not used, if we don't download data
-    private String crawlStorageFolder = "E:\\testCrawlerData";
     private static CrawlConfig config;
     private static PageFetcher pageFetcher;
     private static RobotstxtConfig robotstxtConfig;
     private static RobotstxtServer robotstxtServer;
     private static List<String> textList = new ArrayList<>();
     private static List<String> links = new ArrayList<>();
+    private static Set<String> visitedLinksSet = new HashSet<>();
+    private static ArrayList<String> ListExceptionUrls = new ArrayList<String>();
 
     public List<String> getText() {
         return textList;
@@ -46,27 +41,32 @@ public class Crawler extends WebCrawler {
         return links;
     }
 
+    public ArrayList<String> getListUrls() {
+        return ListExceptionUrls;
+    }
+
 
     public Crawler(){
         
     }
 
-    public Crawler(String domen) {
-        Crawler.domen = domen;
+    public Crawler(String url) {
+        String[] splittedUrl = url.split("/");
+        Crawler.domen = splittedUrl[splittedUrl.length - 1];
         // prepare
+        String crawlStorageFolder = "crawlerData";
         Crawler.config = new CrawlConfig();
+        Crawler.config.setIncludeBinaryContentInCrawling(false);
+        Crawler.config.setPolitenessDelay(1);
         Crawler.config.setCrawlStorageFolder(crawlStorageFolder);
         Crawler.config.setMaxDepthOfCrawling(MAX_DEPTH_OF_CRAWLING);
-        //Crawler.config.setMaxPagesToFetch(MAX_PAGES_TO_FETCH);
-        Crawler.config.setIncludeBinaryContentInCrawling(false);
         Crawler.pageFetcher = new PageFetcher(config);
         Crawler.robotstxtConfig = new RobotstxtConfig();
         Crawler.robotstxtServer = new RobotstxtServer(robotstxtConfig, pageFetcher);
 
         try {
-            IOUtils.createResources();
             Crawler.controller = new CrawlController(config, pageFetcher, robotstxtServer);
-            controller.addSeed(domen);
+            controller.addSeed(url);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -80,51 +80,46 @@ public class Crawler extends WebCrawler {
         catch (Exception e){
             e.printStackTrace();
         }
-        finally {
-            IOUtils.closeResources();
-        }
-
     }
 
     @Override
     public boolean shouldVisit(Page referringPage, WebURL url) {
         String href = url.getURL().toLowerCase();
         return !FILTERS.matcher(href).matches()
-                && href.contains("spbu.ru");
+                && href.contains(domen) && !visitedLinksSet.contains(href);
     }
 
-    /**
-     * This function is called when a page is fetched and ready
-     * to be processed by your program.
-     */
     @Override
     public void visit(Page page) {
         String url = page.getWebURL().getURL();
         System.out.println("URL: " + url);
-        textOutputStreamWriter = IOUtils.getTextOutputStreamWriter();
 
         if (page.getParseData() instanceof HtmlParseData) {
             HtmlParseData htmlParseData = (HtmlParseData) page.getParseData();
-            String text = htmlParseData.getText();
-            //System.out.println(text);
             String html = htmlParseData.getHtml();
             String clearedText = HTMLParser.readFromHTML(html, url);
-            IOUtils.writeText(clearedText, url);
             textList.add(clearedText);
             Set<WebURL> links = htmlParseData.getOutgoingUrls();
-            IOUtils.writeLinks(links, url);
             addLinks(links);
-
-            System.out.println("Text length: " + text.length());
-            System.out.println("Html length: " + html.length());
-            System.out.println("Number of outgoing links: " + links.size());
         }
     }
+
+    @Override
+    protected void onUnhandledException(WebURL webUrl, Throwable e) {
+        String urlStr = (webUrl == null ? "NULL" : webUrl.getURL());
+        ListExceptionUrls.add(urlStr);
+    }
+
 
     private void addLinks(Set<WebURL> setLinks){
         for (WebURL webURL: setLinks) {
-            links.add(webURL.getURL());
+            String url = webURL.getURL();
+            String newurl = url.replace("https://", "").replace("https://www.", "").replace("http://", "").replace("http://www.", "").replace("www.", "");
+            if (newurl.endsWith("/")) {
+                newurl = newurl.substring(0, newurl.length() - 1);
+            }
+            links.add(newurl);
+            visitedLinksSet.add(url);
         }
     }
-
 }
