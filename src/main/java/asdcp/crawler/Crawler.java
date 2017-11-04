@@ -18,7 +18,7 @@ public class Crawler extends WebCrawler {
     private final static Pattern FILTERS = Pattern.compile(".*(\\.(css|js|gif|jpg"
             + "|png|mp3|mp4|zip|gz|pdf|txt|doc|docx))$");
 
-    private static final int MAX_DEPTH_OF_CRAWLING = 1;
+    //private static final int MAX_DEPTH_OF_CRAWLING = 1;
     // concurent threads for crawling
     private static final int NUMBER_OF_CRAWLERS = 4;
 
@@ -59,7 +59,7 @@ public class Crawler extends WebCrawler {
         Crawler.config.setIncludeBinaryContentInCrawling(false);
         Crawler.config.setPolitenessDelay(1);
         Crawler.config.setCrawlStorageFolder(crawlStorageFolder);
-        Crawler.config.setMaxDepthOfCrawling(MAX_DEPTH_OF_CRAWLING);
+        //Crawler.config.setMaxDepthOfCrawling(MAX_DEPTH_OF_CRAWLING);
         Crawler.pageFetcher = new PageFetcher(config);
         Crawler.robotstxtConfig = new RobotstxtConfig();
         Crawler.robotstxtServer = new RobotstxtServer(robotstxtConfig, pageFetcher);
