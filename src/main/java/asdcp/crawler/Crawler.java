@@ -45,6 +45,9 @@ public class Crawler extends WebCrawler {
         return ListExceptionUrls;
     }
 
+    public static Set<String> getVisitedLinksSet() {
+        return visitedLinksSet;
+    }
 
     public Crawler(){
         
@@ -119,7 +122,7 @@ public class Crawler extends WebCrawler {
                 newurl = newurl.substring(0, newurl.length() - 1);
             }
             links.add(newurl);
-            visitedLinksSet.add(url);
+            visitedLinksSet.add(newurl);
         }
     }
 }
