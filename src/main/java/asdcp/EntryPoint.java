@@ -9,7 +9,8 @@ import java.util.Set;
 public final class EntryPoint {
 
 	public static void main(String[] args) {
-		String startUrl = "http://spbu.ru/";
+//		String startUrl = "http://spbu.ru/";
+		String startUrl = "http://radagast.asuscomm.com";
 		if (args.length > 0){
 			startUrl  = args[0];
 		}
@@ -22,7 +23,7 @@ public final class EntryPoint {
 		long timeSpent = System.currentTimeMillis() - startTime;
 
 		Set<String> uniqset = new LinkedHashSet<>(crawler.getLinks());
-		Set<String> uniqunreacheable = new LinkedHashSet<>(crawler.getListUrls());
+		Set<String> uniqunreacheable = new LinkedHashSet<>(crawler.getUnreachableLinks());
 
 		List<String> text = crawler.getText();
 		List<String> links = crawler.getLinks();
@@ -34,8 +35,8 @@ public final class EntryPoint {
 
 		for (String url : uniqset) {
 
-			boolean isContain = url.contains(".spbu.ru");
-			boolean isContain1 = url.contains("spbu.ru");
+			boolean isContain = url.contains(".radagast.asuscomm.com");
+			boolean isContain1 = url.contains("radagast.asuscomm.com");
 			if (isContain) {
 				++countdomainlinks;
 			}

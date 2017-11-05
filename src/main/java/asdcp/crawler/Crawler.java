@@ -14,7 +14,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 import asdcp.HTMLParser;
 
-public class Crawler extends WebCrawler {
+public class Crawler extends WebCrawler implements CrawlerTestMethods {
     private final static Pattern FILTERS = Pattern.compile(".*(\\.(css|js|gif|jpg"
             + "|png|mp3|mp4|zip|gz|pdf|txt|doc|docx))$");
 
@@ -41,7 +41,7 @@ public class Crawler extends WebCrawler {
         return links;
     }
 
-    public ArrayList<String> getListUrls() {
+    public ArrayList<String> getUnreachableLinks() {
         return ListExceptionUrls;
     }
 
