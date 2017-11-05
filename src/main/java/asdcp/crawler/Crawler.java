@@ -18,7 +18,7 @@ public class Crawler extends WebCrawler {
     private final static Pattern FILTERS = Pattern.compile(".*(\\.(css|js|gif|jpg"
             + "|png|mp3|mp4|zip|gz|pdf|txt|doc|docx))$");
 
-    //private static final int MAX_DEPTH_OF_CRAWLING = 1;
+    private static final int MAX_DEPTH_OF_CRAWLING = 1;
     // concurent threads for crawling
     private static final int NUMBER_OF_CRAWLERS = 4;
 
@@ -62,7 +62,7 @@ public class Crawler extends WebCrawler {
         Crawler.config.setIncludeBinaryContentInCrawling(false);
         Crawler.config.setPolitenessDelay(1);
         Crawler.config.setCrawlStorageFolder(crawlStorageFolder);
-        //Crawler.config.setMaxDepthOfCrawling(MAX_DEPTH_OF_CRAWLING);
+        Crawler.config.setMaxDepthOfCrawling(MAX_DEPTH_OF_CRAWLING);
         Crawler.pageFetcher = new PageFetcher(config);
         Crawler.robotstxtConfig = new RobotstxtConfig();
         Crawler.robotstxtServer = new RobotstxtServer(robotstxtConfig, pageFetcher);
@@ -88,8 +88,12 @@ public class Crawler extends WebCrawler {
     @Override
     public boolean shouldVisit(Page referringPage, WebURL url) {
         String href = url.getURL().toLowerCase();
-        return !FILTERS.matcher(href).matches()
-                && href.contains(domen) && !visitedLinksSet.contains(href);
+        String newurl = href.replace("https://", "").replace("https://www.", "").replace("http://", "").replace("http://www.", "").replace("www.", "");
+        if (newurl.endsWith("/")) {
+            newurl = newurl.substring(0, newurl.length() - 1);
+        }
+        return !FILTERS.matcher(newurl).matches()
+                && newurl.contains(domen) && !visitedLinksSet.contains(newurl);
     }
 
     @Override
