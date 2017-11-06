@@ -60,6 +60,7 @@ public class CrawlerTest {
 		Set<String> uniqueLinks = crawler.getUniqueLinks();
 		assertEquals(uniqueLinks, new HashSet<>(Arrays.asList(
 				"http://radagast.asuscomm.com", 
+				"http://radagast.asuscomm.com/home.jsp", // todo
 				"http://radagast.asuscomm.com/testlogin.jsp",
 				"http://radagast.asuscomm.com/about.jsp",
 				"http://radagast.asuscomm.com/account")));

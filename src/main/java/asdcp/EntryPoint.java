@@ -9,51 +9,30 @@ import java.util.Set;
 public final class EntryPoint {
 
 	public static void main(String[] args) {
-//		String startUrl = "http://spbu.ru/";
-		String startUrl = "http://radagast.asuscomm.com";
+		String startUrl = "http://spbu.ru/";
+		//String startUrl = "http://radagast.asuscomm.com";
 		if (args.length > 0){
 			startUrl  = args[0];
 		}
-		int countintlinks = 0;
-		int countdomainlinks = 0;
-		int countextlinks = 0;
+
 		long startTime = System.currentTimeMillis();
 		Crawler crawler = new Crawler(startUrl);
 		crawler.start();
 		long timeSpent = System.currentTimeMillis() - startTime;
 
-		Set<String> uniqset = new LinkedHashSet<>(crawler.getLinks());
-		Set<String> uniqunreacheable = new LinkedHashSet<>(crawler.getUnreachableLinks());
-
-		List<String> text = crawler.getText();
-		List<String> links = crawler.getLinks();
-
-		int lol = 0;
-		for (String s : text) {
-			lol += s.length();
-		}
-
-		for (String url : uniqset) {
-
-			boolean isContain = url.contains(".radagast.asuscomm.com");
-			boolean isContain1 = url.contains("radagast.asuscomm.com");
-			if (isContain) {
-				++countdomainlinks;
-			}
-			if (!isContain && isContain1) {
-				++countintlinks;
-			}
-			if (!isContain && !isContain1) {
-				++countextlinks;
-			}
-		}
-
 		System.out.println("Time of crawler work: " + timeSpent);
-		System.out.println("Count of all links: " + uniqset.size());
-		System.out.println("Count of symbols: " + lol);
-		System.out.println("Count of unreacheable links: " + uniqunreacheable.size());
-		System.out.println("Count of internal links: " + countintlinks);
-		System.out.println("Count of domain links: " + countdomainlinks);
-		System.out.println("Count of external links: " + countextlinks);
+		System.out.println("Count of all links: " + crawler.getLinks().size());
+		System.out.println("Count of internal links: " + crawler.getInternalLinks().size());
+		System.out.println("Count of external links: " + crawler.getExternalLinks().size());	
+		System.out.println("Count of subdomain links: " + crawler.getSubdomenLinks().size());
+		System.out.println("Count of unreachable links: " + crawler.getUnreachableLinks().size());	
+		System.out.println("Count of unique links: " + crawler.getUniqueLinks().size() + "  links:  " + crawler.getUniqueLinks());
+		System.out.println("Count of unique internal links: " + crawler.getUniqueInternalLinks().size()  + "  links:  " + crawler.getUniqueInternalLinks());
+		System.out.println("Count of unique external links: " + crawler.getUniqueExternalLinks().size() + "  links:  " + crawler.getUniqueExternalLinks());	
+		System.out.println("Count of unique subdomain links: " + crawler.getUniqueSubdomenLinks().size()  + "  links:  " + crawler.getUniqueSubdomenLinks());
+		System.out.println("Count of unique unreachable links: " + crawler.getUniqueUnreachableLinks().size()  + "  links:  " + crawler.getUniqueUnreachableLinks());
+		//System.out.println("Map: " + crawler.getTexts().keySet());
+	
+	
 	}
 }
