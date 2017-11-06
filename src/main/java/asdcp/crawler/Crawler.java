@@ -19,8 +19,8 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
             + "|png|mp3|mp4|zip|gz|pdf|txt|doc|docx))$");
 
     private static final int MAX_DEPTH_OF_CRAWLING = 1;
-    // concurent threads for crawling
-    private static final int NUMBER_OF_CRAWLERS = 4;
+    // Concurrent threads for crawling
+    private static final int NUMBER_OF_CRAWLERS = 1;
 
     private static String domen;
     private static CrawlController controller;
@@ -34,7 +34,7 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     private static List<String> externalLinks = new ArrayList<>();
     private static List<String> subdomenLinks = new ArrayList<>();
     private static List<String> unreachableLinks = new ArrayList<>();
-    private static Set<String> visitedLinksSet = new HashSet<>();
+    private static Set<String> visitedLinksSet = java.util.Collections.synchronizedSet(new HashSet<>());
     private static Map<String, String> texts = new HashMap<>();
     
     public Map<String, String> getTexts(){
@@ -90,8 +90,8 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     }
 
     public Crawler(String url) {
-    	links.add(normalizeUrl(url));
-    	internalLinks.add(normalizeUrl(url));
+    	// links.add(normalizeUrl(url));
+    	// internalLinks.add(normalizeUrl(url));
         String[] splittedUrl = url.split("/");
         Crawler.domen = splittedUrl[splittedUrl.length - 1];
 
@@ -135,16 +135,25 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     @Override
     public void visit(Page page) {
         String url = page.getWebURL().getURL();
-        System.out.println("URL: " + url);
+        if (page.getStatusCode() < 200 || page.getStatusCode() > 299) {
+        	String urlStr = (url == null ? "NULL" : url);
+            unreachableLinks.add(normalizeUrl(urlStr));
+        }
+//        System.out.println("URL: " + url);
 
         if (page.getParseData() instanceof HtmlParseData) {
             HtmlParseData htmlParseData = (HtmlParseData) page.getParseData();
             String html = htmlParseData.getHtml();
-            String clearedText = HTMLParser.readFromHTML(html, url);
-            // textList.add(clearedText);
+            try {
+            	String clearedText = HTMLParser.readFromHTML(html, url);
+            	//textList.add(clearedText);
+                texts.put(normalizeUrl(url), clearedText);
+            } catch (IndexOutOfBoundsException e) {
+            	System.out.println("Patience..."); // lol
+            }
+            
             Set<WebURL> links = htmlParseData.getOutgoingUrls();
             addLinks(links);
-            texts.put(normalizeUrl(url), clearedText);
             
         }
     }
@@ -164,14 +173,18 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
         	newurl = newurl.substring(0, newurl.indexOf(";"));
         } else if (newurl.contains("?")) {
         	newurl = newurl.substring(0, newurl.indexOf("?"));
+        } else if (newurl.endsWith(",")) {
+        	newurl = newurl.substring(0, newurl.length() - 1);
         }
         return newurl;
     }
 
-    private void addLinks(Set<WebURL> setLinks){
+    private void addLinks(Set<WebURL> setLinks){    	
         for (WebURL webURL: setLinks) {
             String url = webURL.getURL();
             String newurl = normalizeUrl(url);
+            
+            visitedLinksSet.add(newurl);
             
             links.add(newurl);
             
@@ -185,7 +198,6 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
 				externalLinks.add(newurl);
 			}
             
-            visitedLinksSet.add(newurl);
         }
     }
 }
