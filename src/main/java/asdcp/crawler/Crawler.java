@@ -28,23 +28,59 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     private static PageFetcher pageFetcher;
     private static RobotstxtConfig robotstxtConfig;
     private static RobotstxtServer robotstxtServer;
-    private static List<String> textList = new ArrayList<>();
+    //private static List<String> textList = new ArrayList<>();
     private static List<String> links = new ArrayList<>();
+    private static List<String> internalLinks = new ArrayList<>();
+    private static List<String> externalLinks = new ArrayList<>();
+    private static List<String> subdomenLinks = new ArrayList<>();
+    private static List<String> unreachableLinks = new ArrayList<>();
     private static Set<String> visitedLinksSet = new HashSet<>();
-    private static ArrayList<String> ListExceptionUrls = new ArrayList<String>();
-
-    public List<String> getText() {
-        return textList;
+    private static Map<String, String> texts = new HashMap<>();
+    
+    public Map<String, String> getTexts(){
+    	return texts;
     }
+    
+//    public List<String> getText() {
+//        return textList;
+//    }
 
     public List<String> getLinks() {
         return links;
     }
-
-    public ArrayList<String> getUnreachableLinks() {
-        return ListExceptionUrls;
+    
+    public List<String> getInternalLinks() {
+        return internalLinks;
+    }
+    
+    public List<String> getExternalLinks() {
+        return externalLinks;
+    }
+    
+    public List<String> getSubdomenLinks() {
+        return subdomenLinks;
     }
 
+    public Set<String> getUniqueLinks() {
+        return new HashSet<String>(links);
+    }
+
+    public List<String> getUnreachableLinks() {
+        return unreachableLinks;
+    }
+    public Set<String> getUniqueSubdomenLinks() {
+        return new HashSet<String>(subdomenLinks);
+    }
+    public Set<String> getUniqueUnreachableLinks() {
+        return new HashSet<String>(unreachableLinks);
+    }
+
+    public Set<String> getUniqueInternalLinks() {
+        return new HashSet<String>(internalLinks);
+    }
+    public Set<String> getUniqueExternalLinks() {
+        return new HashSet<String>(externalLinks);
+    }
     public static Set<String> getVisitedLinksSet() {
         return visitedLinksSet;
     }
@@ -54,8 +90,11 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     }
 
     public Crawler(String url) {
+    	links.add(normalizeUrl(url));
+    	internalLinks.add(normalizeUrl(url));
         String[] splittedUrl = url.split("/");
         Crawler.domen = splittedUrl[splittedUrl.length - 1];
+
         // prepare
         String crawlStorageFolder = "crawlerData";
         Crawler.config = new CrawlConfig();
@@ -88,10 +127,7 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     @Override
     public boolean shouldVisit(Page referringPage, WebURL url) {
         String href = url.getURL().toLowerCase();
-        String newurl = href.replace("https://", "").replace("https://www.", "").replace("http://", "").replace("http://www.", "").replace("www.", "");
-        if (newurl.endsWith("/")) {
-            newurl = newurl.substring(0, newurl.length() - 1);
-        }
+        String newurl = normalizeUrl(href);
         return !FILTERS.matcher(newurl).matches()
                 && newurl.contains(domen) && !visitedLinksSet.contains(newurl);
     }
@@ -105,27 +141,50 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
             HtmlParseData htmlParseData = (HtmlParseData) page.getParseData();
             String html = htmlParseData.getHtml();
             String clearedText = HTMLParser.readFromHTML(html, url);
-            textList.add(clearedText);
+            // textList.add(clearedText);
             Set<WebURL> links = htmlParseData.getOutgoingUrls();
             addLinks(links);
+            texts.put(normalizeUrl(url), clearedText);
+            
         }
     }
 
     @Override
     protected void onUnhandledException(WebURL webUrl, Throwable e) {
         String urlStr = (webUrl == null ? "NULL" : webUrl.getURL());
-        ListExceptionUrls.add(urlStr);
+        unreachableLinks.add(normalizeUrl(urlStr));
     }
-
+    
+    private String normalizeUrl(String url) {
+    	String newurl = url.replace("https://", "").replace("https://www.", "").replace("http://", "").replace("http://www.", "").replace("www.", "");
+        if (newurl.endsWith("/")) {
+            newurl = newurl.substring(0, newurl.length() - 1);
+        }
+        if (newurl.contains(";")) {
+        	newurl = newurl.substring(0, newurl.indexOf(";"));
+        } else if (newurl.contains("?")) {
+        	newurl = newurl.substring(0, newurl.indexOf("?"));
+        }
+        return newurl;
+    }
 
     private void addLinks(Set<WebURL> setLinks){
         for (WebURL webURL: setLinks) {
             String url = webURL.getURL();
-            String newurl = url.replace("https://", "").replace("https://www.", "").replace("http://", "").replace("http://www.", "").replace("www.", "");
-            if (newurl.endsWith("/")) {
-                newurl = newurl.substring(0, newurl.length() - 1);
-            }
+            String newurl = normalizeUrl(url);
+            
             links.add(newurl);
+            
+            boolean isSubdomain = newurl.contains("." + normalizeUrl(Crawler.domen)); 
+			boolean isDomain = newurl.contains(normalizeUrl(Crawler.domen)); 
+			if (isSubdomain) {
+				subdomenLinks.add(newurl);
+			} else if (isDomain) {
+				internalLinks.add(newurl);
+			} else {
+				externalLinks.add(newurl);
+			}
+            
             visitedLinksSet.add(newurl);
         }
     }
