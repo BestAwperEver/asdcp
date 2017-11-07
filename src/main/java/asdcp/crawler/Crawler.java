@@ -27,7 +27,7 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
 
     private static final int MAX_DEPTH_OF_CRAWLING = 3;
     // Concurrent threads for crawling
-    private static final int NUMBER_OF_CRAWLERS = 1;
+    private static final int NUMBER_OF_CRAWLERS = 4;
 
     private static String domen;
     private static String table_name;
@@ -198,6 +198,7 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     }
 
     private Connection mysql_conn;
+    private static boolean table_created = false;
     private void initDBConnetion() {
     	try {
 			forName("com.mysql.jdbc.Driver");
@@ -215,10 +216,13 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
 	    info.put("autoReconnect", "true");
 	    try {
 			mysql_conn = DriverManager.getConnection("jdbc:mysql://radagast.asuscomm.com:3306/testdb", info);
-			Statement stmt = mysql_conn.createStatement();
-			stmt.execute("DROP TABLE IF EXISTS " + table_name);
-			stmt.execute("CREATE TABLE IF NOT EXISTS " + table_name + " (url VARCHAR(1024))");
-			stmt.close();
+			if (Crawler.table_created == false) {
+				Crawler.table_created = true;
+				Statement stmt = mysql_conn.createStatement();
+				stmt.execute("DROP TABLE IF EXISTS " + table_name);
+				stmt.execute("CREATE TABLE IF NOT EXISTS " + table_name + " (url VARCHAR(1024))");
+				stmt.close();
+			}
 	    } catch (SQLException ex) {
 		    System.out.println("SQLException: " + ex.getMessage());
 		    System.out.println("SQLState: " + ex.getSQLState());
