@@ -215,8 +215,10 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
 	    info.put("autoReconnect", "true");
 	    try {
 			mysql_conn = DriverManager.getConnection("jdbc:mysql://radagast.asuscomm.com:3306/testdb", info);
-			mysql_conn.createStatement().execute("DROP TABLE IF EXISTS " + table_name);
-			mysql_conn.createStatement().execute("CREATE TABLE IF NOT EXISTS " + table_name + " (url VARCHAR(1024))");
+			Statement stmt = mysql_conn.createStatement();
+			stmt.execute("DROP TABLE IF EXISTS " + table_name);
+			stmt.execute("CREATE TABLE IF NOT EXISTS " + table_name + " (url VARCHAR(1024))");
+			stmt.close();
 	    } catch (SQLException ex) {
 		    System.out.println("SQLException: " + ex.getMessage());
 		    System.out.println("SQLState: " + ex.getSQLState());
@@ -227,6 +229,7 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     private void addUrlToDatabase(String url) throws SQLException {
 		Statement stmt = mysql_conn.createStatement();
 		stmt.executeUpdate("insert into " + table_name + " value ('" + url + "')");
+		stmt.close();
     }
     
     private void addLinks(Set<WebURL> setLinks){    	
