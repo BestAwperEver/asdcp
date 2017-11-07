@@ -44,7 +44,7 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     private static Set<String> visitedLinksSet = java.util.Collections.synchronizedSet(new HashSet<>());
     private static Map<String, String> texts = new HashMap<>();
 
-    private static Connection mysqlConn;
+    private Connection mysqlConn;
     private static boolean tableCreated = false;
     
     public Map<String, String> getTexts(){
@@ -89,7 +89,7 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     }
 
     public Crawler(){
-
+    	initDBConnetion();
     }
 
     public Crawler(String url) {
@@ -117,7 +117,6 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        initDBConnetion();
     }
 
     public void start(){
@@ -126,15 +125,6 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
         }
         catch (Exception e){
             e.printStackTrace();
-        }
-        finally {
-            try {
-                mysqlConn.close();
-                System.out.println("Stopped work");
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-
         }
     }
 
@@ -258,5 +248,15 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
 			}
             
         }
+    }
+
+    @Override
+    public void onBeforeExit() {
+        try {
+            mysqlConn.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        super.onBeforeExit();
     }
 }
