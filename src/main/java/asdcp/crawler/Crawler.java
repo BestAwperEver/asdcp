@@ -10,8 +10,15 @@ import edu.uci.ics.crawler4j.robotstxt.RobotstxtConfig;
 import edu.uci.ics.crawler4j.robotstxt.RobotstxtServer;
 import edu.uci.ics.crawler4j.url.WebURL;
 
+import static java.lang.Class.forName;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.*;
 import java.util.regex.Pattern;
+
 import asdcp.HTMLParser;
 
 public class Crawler extends WebCrawler implements CrawlerTestMethods {
@@ -23,13 +30,14 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     private static final int NUMBER_OF_CRAWLERS = 1;
 
     private static String domen;
+    private static String table_name;
     private static CrawlController controller;
     private static CrawlConfig config;
     private static PageFetcher pageFetcher;
     private static RobotstxtConfig robotstxtConfig;
     private static RobotstxtServer robotstxtServer;
     //private static List<String> textList = new ArrayList<>();
-    private static List<String> links = new ArrayList<>();
+    private static List<String> links = java.util.Collections.synchronizedList(new ArrayList<>());
     private static List<String> internalLinks = new ArrayList<>();
     private static List<String> externalLinks = new ArrayList<>();
     private static List<String> subdomenLinks = new ArrayList<>();
@@ -86,7 +94,7 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     }
 
     public Crawler(){
-        
+    	initDBConnetion();
     }
 
     public Crawler(String url) {
@@ -94,6 +102,9 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     	// internalLinks.add(normalizeUrl(url));
         String[] splittedUrl = url.split("/");
         Crawler.domen = splittedUrl[splittedUrl.length - 1];
+        Crawler.table_name = domen.replace('.', '_')
+        		+ "_" + MAX_DEPTH_OF_CRAWLING
+        		+ "_" + NUMBER_OF_CRAWLERS;
 
         // prepare
         String crawlStorageFolder = "crawlerData";
@@ -186,6 +197,38 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
         return newurl;
     }
 
+    private Connection mysql_conn;
+    private void initDBConnetion() {
+    	try {
+			forName("com.mysql.jdbc.Driver");
+		} catch (ClassNotFoundException e1) {
+			e1.printStackTrace();
+		} 
+    	
+		String username = "testuser";
+		String password = "test";
+	       
+	    //Create Connection
+	    Properties info = new Properties();
+	    info.put("user", username);
+	    info.put("password", password);
+	    info.put("autoReconnect", "true");
+	    try {
+			mysql_conn = DriverManager.getConnection("jdbc:mysql://radagast.asuscomm.com:3306/testdb", info);
+			mysql_conn.createStatement().execute("DROP TABLE IF EXISTS " + table_name);
+			mysql_conn.createStatement().execute("CREATE TABLE IF NOT EXISTS " + table_name + " (url VARCHAR(1024))");
+	    } catch (SQLException ex) {
+		    System.out.println("SQLException: " + ex.getMessage());
+		    System.out.println("SQLState: " + ex.getSQLState());
+		    System.out.println("VendorError: " + ex.getErrorCode());
+		}
+    }
+    
+    private void addUrlToDatabase(String url) throws SQLException {
+		Statement stmt = mysql_conn.createStatement();
+		stmt.executeUpdate("insert into " + table_name + " value ('" + url + "')");
+    }
+    
     private void addLinks(Set<WebURL> setLinks){    	
         for (WebURL webURL: setLinks) {
             String url = webURL.getURL();
@@ -194,6 +237,14 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
             visitedLinksSet.add(newurl);
             
             links.add(newurl);
+            
+            try {
+            	addUrlToDatabase(newurl);
+		    } catch (SQLException ex) {
+			    System.out.println("SQLException: " + ex.getMessage());
+			    System.out.println("SQLState: " + ex.getSQLState());
+			    System.out.println("VendorError: " + ex.getErrorCode());
+			}
             
             boolean isSubdomain = newurl.contains("." + normalizeUrl(Crawler.domen)); 
 			boolean isDomain = newurl.contains(normalizeUrl(Crawler.domen)); 
