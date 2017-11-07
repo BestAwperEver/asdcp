@@ -31,6 +31,9 @@ public final class EntryPoint {
 		System.out.println("Count of unique external links: " + crawler.getUniqueExternalLinks().size() + "  links:  " + crawler.getUniqueExternalLinks());	
 		System.out.println("Count of unique subdomain links: " + crawler.getUniqueSubdomenLinks().size()  + "  links:  " + crawler.getUniqueSubdomenLinks());
 		System.out.println("Count of unique unreachable links: " + crawler.getUniqueUnreachableLinks().size()  + "  links:  " + crawler.getUniqueUnreachableLinks());
+		//System.out.println("Map: " + crawler.getTexts().keySet());
+	
+		crawler.writeToDatabase();
 	
 	}
 }

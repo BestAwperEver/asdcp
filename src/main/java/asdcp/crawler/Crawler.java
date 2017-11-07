@@ -36,6 +36,7 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     private static PageFetcher pageFetcher;
     private static RobotstxtConfig robotstxtConfig;
     private static RobotstxtServer robotstxtServer;
+    //private static List<String> textList = new ArrayList<>();
     private static List<String> links = java.util.Collections.synchronizedList(new ArrayList<>());
     private static List<String> internalLinks = new ArrayList<>();
     private static List<String> externalLinks = new ArrayList<>();
@@ -43,13 +44,14 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     private static List<String> unreachableLinks = new ArrayList<>();
     private static Set<String> visitedLinksSet = java.util.Collections.synchronizedSet(new HashSet<>());
     private static Map<String, String> texts = new HashMap<>();
-
-    private static Connection mysqlConn;
-    private static boolean tableCreated = false;
     
     public Map<String, String> getTexts(){
     	return texts;
     }
+    
+//    public List<String> getText() {
+//        return textList;
+//    }
 
     public List<String> getLinks() {
         return links;
@@ -87,12 +89,17 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     public Set<String> getUniqueExternalLinks() {
         return new HashSet<String>(externalLinks);
     }
-
-    public Crawler(){
-
+    public static Set<String> getVisitedLinksSet() {
+        return visitedLinksSet;
+    }
+    
+    public Crawler() {
+    	
     }
 
     public Crawler(String url) {
+    	// links.add(normalizeUrl(url));
+    	// internalLinks.add(normalizeUrl(url));
         String[] splittedUrl = url.split("/");
         Crawler.domen = splittedUrl[splittedUrl.length - 1];
         Crawler.table_name = domen.replace('.', '_')
@@ -117,25 +124,27 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        initDBConnetion();
     }
 
     public void start(){
         try {
-            controller.start(Crawler.class, NUMBER_OF_CRAWLERS);
+        	controller.start(Crawler.class, NUMBER_OF_CRAWLERS);
         }
         catch (Exception e){
             e.printStackTrace();
         }
-        finally {
-            try {
-                mysqlConn.close();
-                System.out.println("Stopped work");
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-
-        }
+    }
+    
+    public void writeToDatabase() {
+        initDBConnetion();
+        try {
+			addUrlsToDatabase();
+			Crawler.mysql_conn.close();
+		} catch (SQLException ex) {
+			System.out.println("SQLException: " + ex.getMessage());
+		    System.out.println("SQLState: " + ex.getSQLState());
+		    System.out.println("VendorError: " + ex.getErrorCode());
+		}
     }
 
     @Override
@@ -153,15 +162,22 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
         	String urlStr = (url == null ? "NULL" : url);
             unreachableLinks.add(normalizeUrl(urlStr));
         }
+//        System.out.println(page.getStatusCode() + " " + url);
 
         if (page.getParseData() instanceof HtmlParseData) {
             HtmlParseData htmlParseData = (HtmlParseData) page.getParseData();
             String html = htmlParseData.getHtml();
-            String clearedText = HTMLParser.readFromHTML(html, url);
-            texts.put(normalizeUrl(url), clearedText);
+            try {
+            	String clearedText = HTMLParser.readFromHTML(html, url);
+            	//textList.add(clearedText);
+                texts.put(normalizeUrl(url), clearedText);
+            } catch (IndexOutOfBoundsException e) {
+            	System.out.println("Patience..."); // lol
+            }
+            
             Set<WebURL> links = htmlParseData.getOutgoingUrls();
             addLinks(links);
-
+            
         }
     }
 
@@ -193,6 +209,8 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
         return newurl;
     }
 
+    private static Connection mysql_conn;
+    private static boolean table_created = false;
     private void initDBConnetion() {
     	try {
 			forName("com.mysql.jdbc.Driver");
@@ -209,10 +227,10 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
 	    info.put("password", password);
 	    info.put("autoReconnect", "true");
 	    try {
-			mysqlConn = DriverManager.getConnection("jdbc:mysql://radagast.asuscomm.com:3306/testdb", info);
-			if (Crawler.tableCreated == false) {
-				Crawler.tableCreated = true;
-				Statement stmt = mysqlConn.createStatement();
+	    	Crawler.mysql_conn = DriverManager.getConnection("jdbc:mysql://radagast.asuscomm.com:3306/testdb", info);
+			if (Crawler.table_created == false) {
+				Crawler.table_created = true;
+				Statement stmt = Crawler.mysql_conn.createStatement();
 				stmt.execute("DROP TABLE IF EXISTS " + table_name);
 				stmt.execute("CREATE TABLE IF NOT EXISTS " + table_name + " (url VARCHAR(1024))");
 				stmt.close();
@@ -224,9 +242,41 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
 		}
     }
     
+    @Deprecated
     private void addUrlToDatabase(String url) throws SQLException {
-		Statement stmt = mysqlConn.createStatement();
+		Statement stmt = mysql_conn.createStatement();
 		stmt.executeUpdate("insert into " + table_name + " value ('" + url + "')");
+		stmt.close();
+    }
+    
+    private void addUrlsToDatabase() throws SQLException {
+		Statement stmt = mysql_conn.createStatement();
+		
+		StringBuilder sb = new StringBuilder();
+		sb.append("insert into " + table_name + " values ('");
+		
+		int count = 1;
+		final int N = 10000;
+		for (String url : links) {
+			sb.append(url);
+			if (count % N == 0 || count == links.size()) {
+				sb.append("')");
+				String query = sb.toString();
+				stmt.addBatch(query);
+				stmt.executeBatch();
+				stmt.clearBatch();
+				sb.setLength(0);
+				sb.append("insert into " + table_name + " values ('");
+			}
+			else				
+				sb.append("'),('");
+			++count;
+		}
+		
+//		stmt.executeUpdate("insert into " + table_name + " values ('";
+//		+ url + 
+//		
+//		"')");
 		stmt.close();
     }
     
@@ -239,13 +289,13 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
             
             links.add(newurl);
             
-            try {
-            	addUrlToDatabase(newurl);
-		    } catch (SQLException ex) {
-			    System.out.println("SQLException: " + ex.getMessage());
-			    System.out.println("SQLState: " + ex.getSQLState());
-			    System.out.println("VendorError: " + ex.getErrorCode());
-			}
+//            try {
+//            	addUrlToDatabase(newurl);
+//		    } catch (SQLException ex) {
+//			    System.out.println("SQLException: " + ex.getMessage());
+//			    System.out.println("SQLState: " + ex.getSQLState());
+//			    System.out.println("VendorError: " + ex.getErrorCode());
+//			}
             
             boolean isSubdomain = newurl.contains("." + normalizeUrl(Crawler.domen)); 
 			boolean isDomain = newurl.contains(normalizeUrl(Crawler.domen)); 
