@@ -153,11 +153,7 @@ public class HTMLParser extends FileParser<Document> {
 		Document htmlDoc = Jsoup.parse(html);
 		// get text from body
 		Element body = htmlDoc.body();
-		Elements divElements = body.getElementsByTag("div");
-
-		StringBuilder sb = new StringBuilder();
-		Element divElement = divElements.get(0);
-		String divText = divElement.text();
-		return divText;
+		String text = body.text();
+		return text;
 	}
 }

@@ -36,7 +36,6 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     private static PageFetcher pageFetcher;
     private static RobotstxtConfig robotstxtConfig;
     private static RobotstxtServer robotstxtServer;
-    //private static List<String> textList = new ArrayList<>();
     private static List<String> links = java.util.Collections.synchronizedList(new ArrayList<>());
     private static List<String> internalLinks = new ArrayList<>();
     private static List<String> externalLinks = new ArrayList<>();
@@ -44,14 +43,13 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     private static List<String> unreachableLinks = new ArrayList<>();
     private static Set<String> visitedLinksSet = java.util.Collections.synchronizedSet(new HashSet<>());
     private static Map<String, String> texts = new HashMap<>();
+
+    private Connection mysqlConn;
+    private static boolean tableCreated = false;
     
     public Map<String, String> getTexts(){
     	return texts;
     }
-    
-//    public List<String> getText() {
-//        return textList;
-//    }
 
     public List<String> getLinks() {
         return links;
@@ -89,17 +87,12 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     public Set<String> getUniqueExternalLinks() {
         return new HashSet<String>(externalLinks);
     }
-    public static Set<String> getVisitedLinksSet() {
-        return visitedLinksSet;
-    }
 
     public Crawler(){
     	initDBConnetion();
     }
 
     public Crawler(String url) {
-    	// links.add(normalizeUrl(url));
-    	// internalLinks.add(normalizeUrl(url));
         String[] splittedUrl = url.split("/");
         Crawler.domen = splittedUrl[splittedUrl.length - 1];
         Crawler.table_name = domen.replace('.', '_')
@@ -150,22 +143,15 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
         	String urlStr = (url == null ? "NULL" : url);
             unreachableLinks.add(normalizeUrl(urlStr));
         }
-//        System.out.println(page.getStatusCode() + " " + url);
 
         if (page.getParseData() instanceof HtmlParseData) {
             HtmlParseData htmlParseData = (HtmlParseData) page.getParseData();
             String html = htmlParseData.getHtml();
-            try {
-            	String clearedText = HTMLParser.readFromHTML(html, url);
-            	//textList.add(clearedText);
-                texts.put(normalizeUrl(url), clearedText);
-            } catch (IndexOutOfBoundsException e) {
-            	System.out.println("Patience..."); // lol
-            }
-            
+            String clearedText = HTMLParser.readFromHTML(html, url);
+            texts.put(normalizeUrl(url), clearedText);
             Set<WebURL> links = htmlParseData.getOutgoingUrls();
             addLinks(links);
-            
+
         }
     }
 
@@ -197,8 +183,6 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
         return newurl;
     }
 
-    private Connection mysql_conn;
-    private static boolean table_created = false;
     private void initDBConnetion() {
     	try {
 			forName("com.mysql.jdbc.Driver");
@@ -215,10 +199,10 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
 	    info.put("password", password);
 	    info.put("autoReconnect", "true");
 	    try {
-			mysql_conn = DriverManager.getConnection("jdbc:mysql://radagast.asuscomm.com:3306/testdb", info);
-			if (Crawler.table_created == false) {
-				Crawler.table_created = true;
-				Statement stmt = mysql_conn.createStatement();
+			mysqlConn = DriverManager.getConnection("jdbc:mysql://radagast.asuscomm.com:3306/testdb", info);
+			if (Crawler.tableCreated == false) {
+				Crawler.tableCreated = true;
+				Statement stmt = mysqlConn.createStatement();
 				stmt.execute("DROP TABLE IF EXISTS " + table_name);
 				stmt.execute("CREATE TABLE IF NOT EXISTS " + table_name + " (url VARCHAR(1024))");
 				stmt.close();
@@ -231,7 +215,7 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     }
     
     private void addUrlToDatabase(String url) throws SQLException {
-		Statement stmt = mysql_conn.createStatement();
+		Statement stmt = mysqlConn.createStatement();
 		stmt.executeUpdate("insert into " + table_name + " value ('" + url + "')");
 		stmt.close();
     }
@@ -264,5 +248,15 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
 			}
             
         }
+    }
+
+    @Override
+    public void onBeforeExit() {
+        try {
+            mysqlConn.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        super.onBeforeExit();
     }
 }
