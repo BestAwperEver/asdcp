@@ -18,7 +18,7 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     private final static Pattern FILTERS = Pattern.compile(".*(\\.(css|js|gif|jpg"
             + "|png|mp3|mp4|zip|gz|pdf|txt|doc|docx))$");
 
-    private static final int MAX_DEPTH_OF_CRAWLING = 1;
+    private static final int MAX_DEPTH_OF_CRAWLING = 3;
     // Concurrent threads for crawling
     private static final int NUMBER_OF_CRAWLERS = 1;
 
@@ -129,7 +129,7 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
         String href = url.getURL().toLowerCase();
         String newurl = normalizeUrl(href);
         return !FILTERS.matcher(newurl).matches()
-                && newurl.contains(domen) && !visitedLinksSet.contains(newurl);
+                && newurl.contains(domen) && !visitedLinksSet.contains(normalizeUrl(newurl));
     }
 
     @Override
@@ -139,7 +139,7 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
         	String urlStr = (url == null ? "NULL" : url);
             unreachableLinks.add(normalizeUrl(urlStr));
         }
-//        System.out.println("URL: " + url);
+//        System.out.println(page.getStatusCode() + " " + url);
 
         if (page.getParseData() instanceof HtmlParseData) {
             HtmlParseData htmlParseData = (HtmlParseData) page.getParseData();
@@ -162,6 +162,13 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     protected void onUnhandledException(WebURL webUrl, Throwable e) {
         String urlStr = (webUrl == null ? "NULL" : webUrl.getURL());
         unreachableLinks.add(normalizeUrl(urlStr));
+    }
+    
+    @Override
+    protected void onUnexpectedStatusCode(String urlStr, int statusCode, String contentType,
+            String description) {
+        String urlStr2 = (urlStr == null ? "NULL" : urlStr);
+        unreachableLinks.add(normalizeUrl(urlStr2));
     }
     
     private String normalizeUrl(String url) {

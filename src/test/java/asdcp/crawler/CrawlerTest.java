@@ -36,7 +36,7 @@ public class CrawlerTest {
 	@Test
 	public void testGetUnreachableLinksCount() {
 		List<String> unreachableLinks = crawler.getUnreachableLinks();
-		assertEquals(0, unreachableLinks.size());
+		assertEquals(1, unreachableLinks.size());
 	}
 	
 	@Test
@@ -80,7 +80,7 @@ public class CrawlerTest {
 		Set<String> uniqueLinks = crawler.getUniqueLinks();
 		assertEquals(uniqueLinks, new HashSet<>(Arrays.asList(
 				"radagast.asuscomm.com/error",
-				"radagast.asuscomm.com/home.jsp",
+				"radagast.asuscomm.com",
 				"radagast.asuscomm.com/testlogin.jsp",
 				"radagast.asuscomm.com/testlogin.css",
 				"radagast.asuscomm.com/about.jsp",
@@ -112,7 +112,8 @@ public class CrawlerTest {
 	@Test
 	public void testGetUniqueUnreachableLinks() {
 		Set<String> uniqueUnreachableLinks = crawler.getUniqueUnreachableLinks();
-		assertEquals(uniqueUnreachableLinks, new HashSet<>(Arrays.asList()));
+		assertEquals(uniqueUnreachableLinks, new HashSet<>(Arrays.asList(
+				"radagast.asuscomm.com/error")));
 	}
 
 }
