@@ -25,11 +25,12 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     private final static Pattern FILTERS = Pattern.compile(".*(\\.(css|js|gif|jpg"
             + "|png|mp3|mp4|zip|gz|pdf|txt|doc|docx))$");
 
-    private static final int MAX_DEPTH_OF_CRAWLING = 3;
+    private static final int MAX_DEPTH_OF_CRAWLING = 4;
     // Concurrent threads for crawling
-    private static final int NUMBER_OF_CRAWLERS = 4;
+    private static final int NUMBER_OF_CRAWLERS = 24;
 
     private static String domen;
+    private static String normalizedDomen;
     private static String table_name;
     private static CrawlController controller;
     private static CrawlConfig config;
@@ -42,7 +43,7 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     private static List<String> externalLinks = new ArrayList<>();
     private static List<String> subdomenLinks = new ArrayList<>();
     private static List<String> unreachableLinks = new ArrayList<>();
-    private static Set<String> visitedLinksSet = java.util.Collections.synchronizedSet(new HashSet<>());
+    //private static volatile Set<String> visitedLinksSet = java.util.Collections.synchronizedSet(new HashSet<>());
     private static Map<String, String> texts = new HashMap<>();
     
     public Map<String, String> getTexts(){
@@ -89,9 +90,9 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     public Set<String> getUniqueExternalLinks() {
         return new HashSet<String>(externalLinks);
     }
-    public static Set<String> getVisitedLinksSet() {
-        return visitedLinksSet;
-    }
+//    public static Set<String> getVisitedLinksSet() {
+//        return visitedLinksSet;
+//    }
     
     public Crawler() {
     	
@@ -102,6 +103,7 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     	// internalLinks.add(normalizeUrl(url));
         String[] splittedUrl = url.split("/");
         Crawler.domen = splittedUrl[splittedUrl.length - 1];
+        //normalizedDomen = normalizeUrl(domen);
         Crawler.table_name = domen.replace('.', '_')
         		+ "_" + MAX_DEPTH_OF_CRAWLING
         		+ "_" + NUMBER_OF_CRAWLERS;
@@ -152,7 +154,7 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
         String href = url.getURL().toLowerCase();
         String newurl = normalizeUrl(href);
         return !FILTERS.matcher(newurl).matches()
-                && newurl.contains(domen) && !visitedLinksSet.contains(normalizeUrl(newurl));
+                && newurl.contains(domen) && !newurl.contains("." + domen);
     }
 
     @Override
@@ -168,9 +170,9 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
             HtmlParseData htmlParseData = (HtmlParseData) page.getParseData();
             String html = htmlParseData.getHtml();
             try {
-            	String clearedText = HTMLParser.readFromHTML(html, url);
+            	//String clearedText = HTMLParser.readFromHTML(html, url);
             	//textList.add(clearedText);
-                texts.put(normalizeUrl(url), clearedText);
+                //texts.put(normalizeUrl(url), clearedText);
             } catch (IndexOutOfBoundsException e) {
             	System.out.println("Patience..."); // lol
             }
@@ -285,7 +287,7 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
             String url = webURL.getURL();
             String newurl = normalizeUrl(url);
             
-            visitedLinksSet.add(newurl);
+            //visitedLinksSet.add(newurl);
             
             links.add(newurl);
             
@@ -297,8 +299,8 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
 //			    System.out.println("VendorError: " + ex.getErrorCode());
 //			}
             
-            boolean isSubdomain = newurl.contains("." + normalizeUrl(Crawler.domen)); 
-			boolean isDomain = newurl.contains(normalizeUrl(Crawler.domen)); 
+            boolean isSubdomain = newurl.contains("." + domen);
+			boolean isDomain = newurl.contains(domen);
 			if (isSubdomain) {
 				subdomenLinks.add(newurl);
 			} else if (isDomain) {
