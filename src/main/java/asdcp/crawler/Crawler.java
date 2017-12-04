@@ -17,13 +17,17 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.regex.Pattern;
 
 import asdcp.HTMLParser;
 
+import org.javatuples.KeyValue;
+
 public class Crawler extends WebCrawler implements CrawlerTestMethods {
-    private final static Pattern FILTERS = Pattern.compile(".*(\\.(css|js|gif|jpg"
-            + "|png|mp3|mp4|zip|gz|pdf|txt|doc|docx))$");
+    private final static Pattern FILTERS = Pattern.compile
+    		(".*(\\.(css|js|gif|jpg|png|mp3|mp4|zip|gz|pdf|txt|doc|docx))$");
 
     private static final int MAX_DEPTH_OF_CRAWLING = 4;
     // Concurrent threads for crawling
@@ -31,7 +35,7 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
 
     private static String domen;
     private static String normalizedDomen;
-    private static String table_name;
+    volatile private static String table_name;
     private static CrawlController controller;
     private static CrawlConfig config;
     private static PageFetcher pageFetcher;
@@ -46,6 +50,8 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     //private static volatile Set<String> visitedLinksSet = java.util.Collections.synchronizedSet(new HashSet<>());
     private static Map<String, String> texts = new HashMap<>();
     
+    public static BlockingQueue<KeyValue<String, String>> links_content = new ArrayBlockingQueue<KeyValue<String, String>>(10240);
+    
     public Map<String, String> getTexts(){
     	return texts;
     }
@@ -53,27 +59,23 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
 //    public List<String> getText() {
 //        return textList;
 //    }
-
+    
+    public String getTableName() { return table_name; }
     public List<String> getLinks() {
         return links;
     }
-    
     public List<String> getInternalLinks() {
         return internalLinks;
     }
-    
     public List<String> getExternalLinks() {
         return externalLinks;
     }
-    
     public List<String> getSubdomenLinks() {
         return subdomenLinks;
     }
-
     public Set<String> getUniqueLinks() {
         return new HashSet<String>(links);
     }
-
     public List<String> getUnreachableLinks() {
         return unreachableLinks;
     }
@@ -83,7 +85,6 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     public Set<String> getUniqueUnreachableLinks() {
         return new HashSet<String>(unreachableLinks);
     }
-
     public Set<String> getUniqueInternalLinks() {
         return new HashSet<String>(internalLinks);
     }
@@ -94,9 +95,7 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
 //        return visitedLinksSet;
 //    }
     
-    public Crawler() {
-    	
-    }
+    public Crawler() {}
 
     public Crawler(String url) {
     	// links.add(normalizeUrl(url));
@@ -137,18 +136,6 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
         }
     }
     
-    public void writeToDatabase() {
-        initDBConnetion();
-        try {
-			addUrlsToDatabase();
-			Crawler.mysql_conn.close();
-		} catch (SQLException ex) {
-			System.out.println("SQLException: " + ex.getMessage());
-		    System.out.println("SQLState: " + ex.getSQLState());
-		    System.out.println("VendorError: " + ex.getErrorCode());
-		}
-    }
-
     @Override
     public boolean shouldVisit(Page referringPage, WebURL url) {
         String href = url.getURL().toLowerCase();
@@ -159,10 +146,10 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
 
     @Override
     public void visit(Page page) {
-        String url = page.getWebURL().getURL();
+        String url = normalizeUrl(page.getWebURL().getURL());
         if (page.getStatusCode() < 200 || page.getStatusCode() > 299) {
         	String urlStr = (url == null ? "NULL" : url);
-            unreachableLinks.add(normalizeUrl(urlStr));
+            unreachableLinks.add(urlStr);
         }
 //        System.out.println(page.getStatusCode() + " " + url);
 
@@ -170,10 +157,11 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
             HtmlParseData htmlParseData = (HtmlParseData) page.getParseData();
             String html = htmlParseData.getHtml();
             try {
-            	//String clearedText = HTMLParser.readFromHTML(html, url);
+            	String clearedText = HTMLParser.readFromHTML(html, url);
             	//textList.add(clearedText);
                 //texts.put(normalizeUrl(url), clearedText);
-            } catch (IndexOutOfBoundsException e) {
+            	links_content.put(new KeyValue<String, String>(url, clearedText));
+            } catch (IndexOutOfBoundsException | InterruptedException e) {
             	System.out.println("Patience..."); // lol
             }
             
@@ -211,77 +199,7 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
         return newurl;
     }
 
-    private static Connection mysql_conn;
-    private static boolean table_created = false;
-    private void initDBConnetion() {
-    	try {
-			forName("com.mysql.jdbc.Driver");
-		} catch (ClassNotFoundException e1) {
-			e1.printStackTrace();
-		} 
-    	
-		String username = "testuser";
-		String password = "test";
-	       
-	    //Create Connection
-	    Properties info = new Properties();
-	    info.put("user", username);
-	    info.put("password", password);
-	    info.put("autoReconnect", "true");
-	    try {
-	    	Crawler.mysql_conn = DriverManager.getConnection("jdbc:mysql://radagast.asuscomm.com:3306/testdb", info);
-			if (Crawler.table_created == false) {
-				Crawler.table_created = true;
-				Statement stmt = Crawler.mysql_conn.createStatement();
-				stmt.execute("DROP TABLE IF EXISTS " + table_name);
-				stmt.execute("CREATE TABLE IF NOT EXISTS " + table_name + " (url VARCHAR(1024))");
-				stmt.close();
-			}
-	    } catch (SQLException ex) {
-		    System.out.println("SQLException: " + ex.getMessage());
-		    System.out.println("SQLState: " + ex.getSQLState());
-		    System.out.println("VendorError: " + ex.getErrorCode());
-		}
-    }
-    
-    @Deprecated
-    private void addUrlToDatabase(String url) throws SQLException {
-		Statement stmt = mysql_conn.createStatement();
-		stmt.executeUpdate("insert into " + table_name + " value ('" + url + "')");
-		stmt.close();
-    }
-    
-    private void addUrlsToDatabase() throws SQLException {
-		Statement stmt = mysql_conn.createStatement();
-		
-		StringBuilder sb = new StringBuilder();
-		sb.append("insert into " + table_name + " values ('");
-		
-		int count = 1;
-		final int N = 10000;
-		for (String url : links) {
-			sb.append(url);
-			if (count % N == 0 || count == links.size()) {
-				sb.append("')");
-				String query = sb.toString();
-				stmt.addBatch(query);
-				stmt.executeBatch();
-				stmt.clearBatch();
-				sb.setLength(0);
-				sb.append("insert into " + table_name + " values ('");
-			}
-			else				
-				sb.append("'),('");
-			++count;
-		}
-		
-//		stmt.executeUpdate("insert into " + table_name + " values ('";
-//		+ url + 
-//		
-//		"')");
-		stmt.close();
-    }
-    
+
     private void addLinks(Set<WebURL> setLinks){    	
         for (WebURL webURL: setLinks) {
             String url = webURL.getURL();

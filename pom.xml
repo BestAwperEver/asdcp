@@ -84,6 +84,13 @@
 			<version>5.1.42</version>
 		</dependency>
 
+		<!-- https://mvnrepository.com/artifact/org.javatuples/javatuples -->
+		<dependency>
+			<groupId>org.javatuples</groupId>
+			<artifactId>javatuples</artifactId>
+			<version>1.2</version>
+		</dependency>
+		
 		<!-- https://mvnrepository.com/artifact/net.sourceforge.htmlcleaner/htmlcleaner -->
 		<dependency>
 			<groupId>net.sourceforge.htmlcleaner</groupId>
@@ -95,13 +102,5 @@
 			<artifactId>crawler4j</artifactId>
 			<version>4.3</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/junit/junit -->
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.12</version>
-			<scope>test</scope>
-		</dependency>
-
 	</dependencies>
 </project>

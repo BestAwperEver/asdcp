@@ -9,14 +9,17 @@ import java.util.Set;
 public final class EntryPoint {
 
 	public static void main(String[] args) {
-		String startUrl = "http://spbu.ru/";
-		//String startUrl = "http://radagast.asuscomm.com";
+		//String startUrl = "http://spbu.ru/";
+		String startUrl = "http://radagast.asuscomm.com";
 		if (args.length > 0){
 			startUrl  = args[0];
 		}
-
+		
 		long startTime = System.currentTimeMillis();
 		Crawler crawler = new Crawler(startUrl);
+		Writer writer = new Writer(crawler);
+		Thread wt = new Thread(writer, "writer thread");
+		wt.start();
 		crawler.start();
 		long timeSpent = System.currentTimeMillis() - startTime;
 
@@ -33,7 +36,13 @@ public final class EntryPoint {
 		System.out.println("Count of unique unreachable links: " + crawler.getUniqueUnreachableLinks().size()  + "  links:  " + crawler.getUniqueUnreachableLinks());
 		//System.out.println("Map: " + crawler.getTexts().keySet());
 	
-		crawler.writeToDatabase();
+		//crawler.writeToDatabase();
+		try {
+			wt.join();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	
 	}
 }
