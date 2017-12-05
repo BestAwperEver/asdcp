@@ -19,6 +19,7 @@ import java.sql.Statement;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.SynchronousQueue;
 import java.util.regex.Pattern;
 
 import asdcp.HTMLParser;
@@ -50,6 +51,7 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
     //private static volatile Set<String> visitedLinksSet = java.util.Collections.synchronizedSet(new HashSet<>());
     private static Map<String, String> texts = new HashMap<>();
     
+    public static BlockingQueue<Double> sync = new SynchronousQueue<Double>();
     public static BlockingQueue<KeyValue<String, String>> links_content = new ArrayBlockingQueue<KeyValue<String, String>>(10240);
     
     public Map<String, String> getTexts(){
@@ -60,7 +62,7 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
 //        return textList;
 //    }
     
-    public String getTableName() { return table_name; }
+    public static String getTableName() { return table_name; }
     public List<String> getLinks() {
         return links;
     }
@@ -106,7 +108,14 @@ public class Crawler extends WebCrawler implements CrawlerTestMethods {
         Crawler.table_name = domen.replace('.', '_')
         		+ "_" + MAX_DEPTH_OF_CRAWLING
         		+ "_" + NUMBER_OF_CRAWLERS;
-
+        
+        try {
+			sync.put(1.0);
+		} catch (InterruptedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+        
         // prepare
         String crawlStorageFolder = "crawlerData";
         Crawler.config = new CrawlConfig();

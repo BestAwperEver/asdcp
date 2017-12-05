@@ -13,14 +13,10 @@ import java.util.concurrent.TimeUnit;
 import org.javatuples.KeyValue;
 
 public class Writer implements Runnable {
-	public Crawler crwlr;
 	private static Connection mysql_conn;
 	private static boolean table_created = false;
 	
-	public Writer(Crawler crwlr) {
-		this.crwlr = crwlr;
-		this.initDBConnetion();
-	}
+	public Writer() {}
 
 	private void initDBConnetion() {
 		try {
@@ -37,13 +33,30 @@ public class Writer implements Runnable {
 		info.put("user", username);
 		info.put("password", password);
 		info.put("autoReconnect", "true");
+		info.put("useUnicode", "true");
+		info.put("characterEncoding", "utf8");
+
 		try {
 			Writer.mysql_conn = DriverManager.getConnection("jdbc:mysql://radagast.asuscomm.com:3306/testdb", info);
 			if (Writer.table_created == false) {
 				Writer.table_created = true;
 				Statement stmt = Writer.mysql_conn.createStatement();
-				stmt.execute("DROP TABLE IF EXISTS " + crwlr.getTableName());
-				stmt.execute("CREATE TABLE IF NOT EXISTS " + crwlr.getTableName() + " (url VARCHAR(256), content TEXT, PRIMARY KEY (url))");
+				try {
+					Double a = Crawler.sync.poll(30, TimeUnit.SECONDS);
+					if (a == null) {
+						throw new InterruptedException("WTF???");
+					}
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					stmt.close();
+					mysql_conn.close();
+					e.printStackTrace();
+				}
+				stmt.execute("DROP TABLE IF EXISTS " + Crawler.getTableName());
+				stmt.execute("CREATE TABLE IF NOT EXISTS " + Crawler.getTableName()
+				+ " (url VARCHAR(256), content MEDIUMTEXT CHARACTER SET utf16, PRIMARY KEY (url))");
+				stmt.execute("set character set utf8");
+				stmt.execute("set names utf8");
 				stmt.close();
 			}
 		} catch (SQLException ex) {
@@ -55,8 +68,17 @@ public class Writer implements Runnable {
 
 	@Override
 	public void run() {
+		initDBConnetion();
+		try {
+			if (mysql_conn == null || mysql_conn.isClosed()) return;
+		} catch (SQLException ex) {
+			System.out.println("SQLException: " + ex.getMessage());
+			System.out.println("SQLState: " + ex.getSQLState());
+			System.out.println("VendorError: " + ex.getErrorCode());
+		}
+		
 		try (PreparedStatement stmt = mysql_conn.prepareStatement(
-				"INSERT INTO " + crwlr.getTableName() + " (url, content) values (?, ?)"
+				"INSERT INTO " + Crawler.getTableName() + " (url, content) values (?, ?)"
 						+ "ON DUPLICATE KEY UPDATE url=url");
 				) {
 			
@@ -77,11 +99,13 @@ public class Writer implements Runnable {
 				
 				if (i % 1000 == 0) {
 					stmt.executeBatch();
+					mysql_conn.commit();
 				}
 			}
 			
 			if (i % 1000 != 0) {
 				stmt.executeBatch();
+				mysql_conn.commit();
 			}
 			
 		} catch (InterruptedException e) {
@@ -93,6 +117,7 @@ public class Writer implements Runnable {
 		} finally {
 			try {
 				mysql_conn.commit();
+				mysql_conn.setAutoCommit(true);
 				mysql_conn.close();
 			} catch (SQLException ex) {
 				System.out.println("SQLException: " + ex.getMessage());
