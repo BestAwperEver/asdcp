@@ -3,148 +3,229 @@ package asdcp.crawler;
 import java.sql.*;
 import java.util.*;
 
+import org.tartarus.snowball.ext.russianStemmer;
+
 import static java.lang.Class.forName;
 
 public class Indexer {
 
-    public void createIndexFromDb(){
-        try {
-            forName("com.mysql.jdbc.Driver");
-        } catch (ClassNotFoundException e1) {
-            e1.printStackTrace();
-        }
+	public void createIndexFromDb() {
+		try {
+			forName("com.mysql.jdbc.Driver");
+		} catch (ClassNotFoundException e1) {
+			e1.printStackTrace();
+		}
 
-        String username = "testuser";
-        String password = "test";
+		String username = "testuser";
+		String password = "test";
 
-        // Create Connection
-        Properties info = new Properties();
-        info.put("user", username);
-        info.put("password", password);
-        info.put("autoReconnect", "true");
-        info.put("useUnicode", "true");
-        info.put("characterEncoding", "utf8");
+		// Create Connection
+		Properties info = new Properties();
+		info.put("user", username);
+		info.put("password", password);
+		info.put("autoReconnect", "true");
+		info.put("useUnicode", "true");
+		info.put("characterEncoding", "utf8");
 
-        String docIdTableName = "doc_id";
-        String wordTableName = "word";
-        String wordDocTableName = "word_doc";
-        String selectQuery = "select url, content from spbu_ru_100_24 WHERE url LIKE \"spbu.ru%\" limit 100";
-        int docId = 1;
+		String dataTableName = "spbu_ru_100_24";
+		String docIdTableName = "doc_id";
+		String wordTableName = "word";
+		String wordDocTableName = "word_doc";
+		// String selectQuery = "select url, content from " + dataTableName + " WHERE
+		// url LIKE \"spbu.ru%\" limit 100";
 
-        Map<String, Set<Integer>> invertedFile = new HashMap<>();
-        Map<String, Integer> wordIdMap = new HashMap<>();
-        String splitReg = ",?:?;?!?\\.?\\??[\\u00A0\\s]+,?:?;?!?\\.?\\??";
-        //String splitReg = "[^\\p{L}'-]+";
-        String matchReg = "(\\p{L}+|(\\p{L}+-?){1,3})";
-        int batchSize = 10;
+		int docId = 1;
 
-        try {
-            try (Connection connection = DriverManager.getConnection("jdbc:mysql://radagast.asuscomm.com:3306/testdb", info)){
-                try (Statement statement = connection.createStatement()){
-                    statement.execute("DROP TABLE IF EXISTS " + docIdTableName);
-                    statement.execute("CREATE TABLE IF NOT EXISTS " + docIdTableName
-                            + " (url VARCHAR(256), doc_id SMALLINT, PRIMARY KEY (url))");
+		Map<Integer, Set<Integer>> invertedFile = new HashMap<>();
+		Map<String, Integer> wordIdMap = new HashMap<>();
+		//String splitReg = ",?:?;?!?\\.?\\??[\\u00A0\\s]+,?:?;?!?\\.?\\??";
+		// String splitReg = "[^\\p{L}'-]+";
+		String matchReg = "(\\p{L}+|(\\p{L}+-?){1,3})";
+		int batchSize = 10000;
 
-                    statement.execute("DROP TABLE IF EXISTS " + wordTableName);
-                    statement.execute("CREATE TABLE IF NOT EXISTS " + wordTableName
-                            + " (word_id INTEGER, word TEXT CHARACTER SET utf16, PRIMARY KEY (word_id))");
+		try {
+			try (Connection connection =
+					DriverManager.getConnection(
+							"jdbc:mysql://radagast.asuscomm.com:3306/testdb",
+							info)) {
+				
+				connection.setAutoCommit(false);
 
-                    statement.execute("DROP TABLE IF EXISTS " + wordDocTableName);
-                    statement.execute("CREATE TABLE IF NOT EXISTS " + wordDocTableName
-                            + " (id INTEGER AUTO_INCREMENT, word_id INTEGER, doc_id INTEGER, PRIMARY KEY (id))");
+				PreparedStatement docIdInsertStatement = connection
+						.prepareStatement("INSERT INTO " + docIdTableName + " (doc_id, url) VALUE (?, ?)");
+				PreparedStatement wordInsertStatement = connection
+						.prepareStatement("INSERT INTO " + wordTableName + " (word_id, word) VALUE (?, ?)");
+				PreparedStatement wordDocInsertStatement = connection
+						.prepareStatement("INSERT INTO " + wordDocTableName + " (word_id, doc_id) VALUE (?, ?)");
 
-                    statement.execute("set character set utf8");
-                    statement.execute("set names utf8");
+				PreparedStatement selectStatement = connection
+						.prepareStatement("SELECT url, content from " + dataTableName + " limit ?,?");
 
-                    ResultSet resultSet = statement.executeQuery(selectQuery);
-                    PreparedStatement docIdInsertStatement = connection.prepareStatement("INSERT INTO " + docIdTableName + " (url, doc_id) VALUES (?, ?)");
-                    PreparedStatement wordInsertStatement = connection.prepareStatement("INSERT INTO " + wordTableName + " (word_id, word) VALUES (?, ?)");
-                    PreparedStatement wordDocInsertStatement = connection.prepareStatement("INSERT INTO " + wordDocTableName + " (word_id, doc_id) VALUES (?, ?)");
-                    connection.setAutoCommit(false);
-                    int counter = 0;
-                    int wordId = 1;
+				try (Statement statement = connection.createStatement()) {
+					statement.execute("DROP TABLE IF EXISTS " + wordDocTableName);
+					statement.execute("DROP TABLE IF EXISTS " + wordTableName);
+					statement.execute("DROP TABLE IF EXISTS " + docIdTableName);
 
-                    while (resultSet.next()){
-                        String url = resultSet.getString(1);
-                        String text = resultSet.getString(2);
-                        docIdInsertStatement.setString(1, url);
-                        docIdInsertStatement.setInt(2, docId);
-                        docIdInsertStatement.addBatch();
-                        ++counter;
-                        if (counter % batchSize == 0){
-                            docIdInsertStatement.executeBatch();
-                            connection.commit();
-                        }
-                        String[] splittedText = text.split(splitReg);
-                        for (String word:splittedText) {
-                            word = word.toLowerCase();
-                            if (word.matches(matchReg) && word.length() > 2){
-                                if (!invertedFile.containsKey(word)){
-                                    invertedFile.put(word, new HashSet<>());
-                                    wordIdMap.put(word, wordId);
-                                    ++wordId;
-                                }
-                                Set<Integer> wordDocIdSet = invertedFile.get(word);
-                                wordDocIdSet.add(docId);
-                            }
-                        }
-                        ++docId;
-                    }
-                    if (counter % batchSize != 0 ){
-                        docIdInsertStatement.executeBatch();
-                        connection.commit();
-                    }
-                    docIdInsertStatement.close();
-                    resultSet.close();
-                    counter = 0;
+					statement
+							.execute("CREATE TABLE IF NOT EXISTS " + docIdTableName + " (" + "doc_id INTEGER NOT NULL, "
+									+ "url VARCHAR(256) NOT NULL, " + "PRIMARY KEY (doc_id), " + "FOREIGN KEY (url) "
+									+ "REFERENCES " + dataTableName + " (url) " + "ON DELETE CASCADE" + ")");
 
-                    for (String word:invertedFile.keySet()) {
-                        wordId = wordIdMap.get(word);
-                        wordInsertStatement.setInt(1, wordId);
-                        wordInsertStatement.setString(2, word);
-                        wordInsertStatement.addBatch();
-                        if (counter % batchSize == 0){
-                            wordInsertStatement.executeBatch();
-                            connection.commit();
-                        }
+					statement.execute("CREATE TABLE IF NOT EXISTS " + wordTableName + " ("
+							+ "word_id INTEGER NOT NULL, " + "word VARCHAR(60) CHARACTER SET utf16 NOT NULL, "
+							+ "PRIMARY KEY (word_id)" + ")");
 
-                        Set<Integer> docIdSet = invertedFile.get(word);
-                        for (Integer id:docIdSet) {
-                            wordDocInsertStatement.setInt(1, wordId);
-                            wordDocInsertStatement.setInt(2, id);
-                            wordDocInsertStatement.addBatch();
-                            if (counter % batchSize == 0){
-                                wordDocInsertStatement.executeBatch();
-                                connection.commit();
-                            }
-                        }
-                        ++counter;
-                    }
-                    if (counter % batchSize != 0 ){
-                        wordDocInsertStatement.executeBatch();
-                        wordInsertStatement.executeBatch();
-                        connection.commit();
-                    }
-                    wordDocInsertStatement.close();
-                    wordInsertStatement.close();
-                } finally {
-                    connection.commit();
-                    connection.setAutoCommit(true);
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            System.out.println("SQLState: " + e.getSQLState());
-            System.out.println("VendorError: " + e.getErrorCode());
-        }
+					statement.execute("CREATE TABLE IF NOT EXISTS " + wordDocTableName + " ("
+							+ "word_id INTEGER NOT NULL, " + "doc_id INTEGER NOT NULL, "
+							+ "PRIMARY KEY (word_id, doc_id), " + "FOREIGN KEY (word_id) " + "REFERENCES "
+							+ wordTableName + " (word_id) " + "ON DELETE CASCADE, " + "FOREIGN KEY (doc_id) "
+							+ "REFERENCES " + docIdTableName + " (doc_id) " + "ON DELETE CASCADE" + ")");
 
-    }
+					statement.execute("set character set utf8");
+					statement.execute("set names utf8");
 
-    public static void main(String[] args) {
-        Indexer indexer = new Indexer();
-        long startTime = System.currentTimeMillis();
-        indexer.createIndexFromDb();
-        long timeSpent = System.currentTimeMillis() - startTime;
-        System.out.println("Indexing time: " + timeSpent);
-    }
+					int counter_doc = 0;
+					int wordId = 1;
+
+					ResultSet resultSetCount = statement.executeQuery("select count(*) from " + dataTableName);
+					resultSetCount.next();
+					
+					int index = 0;
+					int count = resultSetCount.getInt(1);
+					int step = 1000;
+
+					resultSetCount.close();
+
+					// TEST
+//					step = 500;
+//					count = 970;
+
+					selectStatement.setInt(2, step);
+					
+					while (index < count) {
+
+						selectStatement.setInt(1, index);
+						index += step;
+						ResultSet resultSet = selectStatement.executeQuery();
+
+						while (resultSet.next()) {
+							String url = resultSet.getString(1);
+							String text = resultSet.getString(2);
+							docIdInsertStatement.setInt(1, docId);
+							docIdInsertStatement.setString(2, url);
+							docIdInsertStatement.addBatch();
+							++counter_doc;
+
+							if (counter_doc % batchSize == 0) {
+								docIdInsertStatement.executeBatch();
+								connection.commit();
+							}
+
+							// TO DO
+							// String[] splittedText = text.split(splitReg);
+							StringTokenizer st = new StringTokenizer(text);
+							russianStemmer stemmer = new russianStemmer();
+							String word = null;
+
+							while (st.hasMoreTokens()) {
+								// for (String word : splittedText) {
+								// TO DO
+								// word = word.toLowerCase();
+								stemmer.setCurrent(st.nextToken());
+								stemmer.stem();
+								word = stemmer.getCurrent().toLowerCase();
+
+								// TO DO
+								if (word.matches(matchReg) && word.length() > 2) {
+
+									if (wordIdMap.containsKey(word) == false) {
+
+										++wordId;
+
+										invertedFile.put(wordId, new HashSet<>());
+										wordIdMap.put(word, wordId);
+
+										wordInsertStatement.setInt(1, wordId);
+										wordInsertStatement.setString(2, word);
+										wordInsertStatement.addBatch();
+
+										if (wordId % batchSize == 0) {
+											wordInsertStatement.executeBatch();
+											connection.commit();
+										}
+
+										invertedFile.get(wordId).add(docId);
+
+									} else {
+										invertedFile.get(wordIdMap.get(word)).add(docId);
+									}
+
+								}
+
+							}
+							++docId;
+						}
+						if (counter_doc % batchSize != 0) {
+							docIdInsertStatement.executeBatch();
+							connection.commit();
+						}
+						if (wordId % batchSize != 0) {
+							wordInsertStatement.executeBatch();
+							connection.commit();
+						}
+					}
+
+					int counter_pair = 0;
+
+					// invertedFile.get(12).toArray()
+
+					for (int word_id : invertedFile.keySet()) {
+
+						Set<Integer> docIdSet = invertedFile.get(word_id);
+						for (int id : docIdSet) {
+							++counter_pair;
+
+							wordDocInsertStatement.setInt(1, word_id);
+							wordDocInsertStatement.setInt(2, id);
+							wordDocInsertStatement.addBatch();
+
+							if (counter_pair % batchSize == 0) {
+								wordDocInsertStatement.executeBatch();
+								connection.commit();
+							}
+						}
+					}
+
+					if (counter_pair % batchSize != 0) {
+						wordDocInsertStatement.executeBatch();
+						connection.commit();
+					}
+
+				} finally {
+
+					docIdInsertStatement.close();
+					wordInsertStatement.close();
+					selectStatement.close();
+					wordDocInsertStatement.close();
+
+					connection.commit();
+					connection.setAutoCommit(true);
+				}
+			}
+		} catch (SQLException ex) {
+			ex.printStackTrace();
+			System.out.println("SQLException: " + ex.getMessage());
+			System.out.println("SQLState: " + ex.getSQLState());
+			System.out.println("VendorError: " + ex.getErrorCode());
+		}
+
+	}
+
+	public static void main(String[] args) {
+		Indexer indexer = new Indexer();
+		long startTime = System.currentTimeMillis();
+		indexer.createIndexFromDb();
+		long timeSpent = System.currentTimeMillis() - startTime;
+		System.out.println("Indexing time: " + timeSpent);
+	}
 }
