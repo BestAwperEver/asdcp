@@ -6,38 +6,6 @@ import java.util.*;
 import static java.lang.Class.forName;
 
 public class Indexer {
-//    public void createDocIdDb(){
-//        try {
-//            forName("com.mysql.jdbc.Driver");
-//        } catch (ClassNotFoundException e1) {
-//            e1.printStackTrace();
-//        }
-//
-//        String username = "testuser";
-//        String password = "test";
-//
-//        // Create Connection
-//        Properties info = new Properties();
-//        info.put("user", username);
-//        info.put("password", password);
-//        info.put("autoReconnect", "true");
-//        info.put("useUnicode", "true");
-//        info.put("characterEncoding", "utf8");
-//
-//        String tableName = "doc_id";
-//
-//        try {
-//            try (Connection connection = DriverManager.getConnection("jdbc:mysql://radagast.asuscomm.com:3306/testdb", info)){
-//                try (Statement statement = connection.createStatement()){
-//                    statement.execute("CREATE TABLE IF NOT EXISTS " + tableName
-//                            + " (url VARCHAR(256), doc_id SMALLINT, PRIMARY KEY (url))");
-//                }
-//
-//            }
-//        } catch (SQLException e) {
-//            e.printStackTrace();
-//        }
-//    }
 
     public void createIndexFromDb(){
         try {
@@ -58,13 +26,11 @@ public class Indexer {
         info.put("characterEncoding", "utf8");
 
         String docIdTableName = "doc_id";
-        //String indexTableName = "indexTable";
         String wordTableName = "word";
         String wordDocTableName = "word_doc";
         String selectQuery = "select url, content from spbu_ru_100_24 WHERE url LIKE \"spbu.ru%\" limit 100";
         int docId = 1;
 
-        //Map<String, Integer> pageDocIdMap = new HashMap<>();
         Map<String, Set<Integer>> invertedFile = new HashMap<>();
         Map<String, Integer> wordIdMap = new HashMap<>();
         String splitReg = ",?:?;?!?\\.?\\??[\\u00A0\\s]+,?:?;?!?\\.?\\??";
@@ -78,10 +44,6 @@ public class Indexer {
                     statement.execute("DROP TABLE IF EXISTS " + docIdTableName);
                     statement.execute("CREATE TABLE IF NOT EXISTS " + docIdTableName
                             + " (url VARCHAR(256), doc_id SMALLINT, PRIMARY KEY (url))");
-
-//                    statement.execute("DROP TABLE IF EXISTS " + indexTableName);
-//                    statement.execute("CREATE TABLE IF NOT EXISTS " + indexTableName
-//                            + " (word VARCHAR(256), doc_id  MEDIUMTEXT CHARACTER SET utf16, PRIMARY KEY (word))");
 
                     statement.execute("DROP TABLE IF EXISTS " + wordTableName);
                     statement.execute("CREATE TABLE IF NOT EXISTS " + wordTableName
@@ -98,7 +60,6 @@ public class Indexer {
                     PreparedStatement docIdInsertStatement = connection.prepareStatement("INSERT INTO " + docIdTableName + " (url, doc_id) VALUES (?, ?)");
                     PreparedStatement wordInsertStatement = connection.prepareStatement("INSERT INTO " + wordTableName + " (word_id, word) VALUES (?, ?)");
                     PreparedStatement wordDocInsertStatement = connection.prepareStatement("INSERT INTO " + wordDocTableName + " (word_id, doc_id) VALUES (?, ?)");
-                    //PreparedStatement indexDbInsertStatement = connection.prepareStatement("INSERT INTO " + indexTableName + " (word, doc_id) VALUES (?, ?)");
                     connection.setAutoCommit(false);
                     int counter = 0;
                     int wordId = 1;
@@ -106,7 +67,6 @@ public class Indexer {
                     while (resultSet.next()){
                         String url = resultSet.getString(1);
                         String text = resultSet.getString(2);
-                        //pageDocIdMap.put(url, docId);
                         docIdInsertStatement.setString(1, url);
                         docIdInsertStatement.setInt(2, docId);
                         docIdInsertStatement.addBatch();
@@ -118,7 +78,7 @@ public class Indexer {
                         String[] splittedText = text.split(splitReg);
                         for (String word:splittedText) {
                             word = word.toLowerCase();
-                            if (word.matches(matchReg)){
+                            if (word.matches(matchReg) && word.length() > 2){
                                 if (!invertedFile.containsKey(word)){
                                     invertedFile.put(word, new HashSet<>());
                                     wordIdMap.put(word, wordId);
@@ -187,6 +147,4 @@ public class Indexer {
         long timeSpent = System.currentTimeMillis() - startTime;
         System.out.println("Indexing time: " + timeSpent);
     }
-
-
 }
