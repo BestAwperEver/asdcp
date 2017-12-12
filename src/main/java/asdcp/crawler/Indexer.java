@@ -68,18 +68,26 @@ public class Indexer {
 
 					statement
 							.execute("CREATE TABLE IF NOT EXISTS " + docIdTableName + " (" + "doc_id INTEGER NOT NULL, "
-									+ "url VARCHAR(256) NOT NULL, " + "PRIMARY KEY (doc_id), " + "FOREIGN KEY (url) "
-									+ "REFERENCES " + dataTableName + " (url) " + "ON DELETE CASCADE" + ")");
+									+ "url VARCHAR(256) NOT NULL, "
+									+ "PRIMARY KEY (doc_id), "
+									+ "FOREIGN KEY (url) "
+									+ "REFERENCES " + dataTableName + " (url) "
+									+ "ON DELETE CASCADE" + ")");
 
 					statement.execute("CREATE TABLE IF NOT EXISTS " + wordTableName + " ("
-							+ "word_id INTEGER NOT NULL, " + "word VARCHAR(60) CHARACTER SET utf16 NOT NULL, "
+							+ "word_id INTEGER NOT NULL, "
+							+ "word VARCHAR(60) CHARACTER SET utf16 NOT NULL, "
 							+ "PRIMARY KEY (word_id)" + ")");
 
 					statement.execute("CREATE TABLE IF NOT EXISTS " + wordDocTableName + " ("
 							+ "word_id INTEGER NOT NULL, " + "doc_id INTEGER NOT NULL, "
-							+ "PRIMARY KEY (word_id, doc_id), " + "FOREIGN KEY (word_id) " + "REFERENCES "
-							+ wordTableName + " (word_id) " + "ON DELETE CASCADE, " + "FOREIGN KEY (doc_id) "
-							+ "REFERENCES " + docIdTableName + " (doc_id) " + "ON DELETE CASCADE" + ")");
+							+ "PRIMARY KEY (word_id, doc_id), "
+							+ "FOREIGN KEY (word_id) "
+							+ "REFERENCES "	+ wordTableName + " (word_id) "
+							+ "ON DELETE CASCADE, "
+							+ "FOREIGN KEY (doc_id) "
+							+ "REFERENCES " + docIdTableName + " (doc_id) "
+							+ "ON DELETE CASCADE" + ")");
 
 					statement.execute("set character set utf8");
 					statement.execute("set names utf8");
@@ -119,6 +127,7 @@ public class Indexer {
 							if (counter_doc % batchSize == 0) {
 								docIdInsertStatement.executeBatch();
 								connection.commit();
+								System.out.println("commited " + counter_doc + " documents");
 							}
 
 							// TO DO
@@ -146,12 +155,14 @@ public class Indexer {
 										wordIdMap.put(word, wordId);
 
 										wordInsertStatement.setInt(1, wordId);
-										wordInsertStatement.setString(2, word);
+										wordInsertStatement.setString(2, word.substring(0,
+												word.length() < 60 ? word.length() : 60));
 										wordInsertStatement.addBatch();
 
 										if (wordId % batchSize == 0) {
 											wordInsertStatement.executeBatch();
 											connection.commit();
+											System.out.println("commited " + wordId + " words");
 										}
 
 										invertedFile.get(wordId).add(docId);
@@ -168,10 +179,12 @@ public class Indexer {
 						if (counter_doc % batchSize != 0) {
 							docIdInsertStatement.executeBatch();
 							connection.commit();
+							System.out.println("commited " + counter_doc + " documents");
 						}
 						if (wordId % batchSize != 0) {
 							wordInsertStatement.executeBatch();
 							connection.commit();
+							System.out.println("commited " + wordId + " words");
 						}
 					}
 
@@ -192,6 +205,7 @@ public class Indexer {
 							if (counter_pair % batchSize == 0) {
 								wordDocInsertStatement.executeBatch();
 								connection.commit();
+								System.out.println("commited " + counter_pair + " pairs");
 							}
 						}
 					}
@@ -199,6 +213,7 @@ public class Indexer {
 					if (counter_pair % batchSize != 0) {
 						wordDocInsertStatement.executeBatch();
 						connection.commit();
+						System.out.println("commited " + counter_pair + " pairs");
 					}
 
 				} finally {
